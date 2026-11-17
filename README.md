@@ -8,9 +8,28 @@
   <a href="https://evys-social.vercel.app"><b>See Evy's →</b></a>
 </p>
 
-Your own little social site. It looks and feels like a phone app, your friends
-add it to their home screen, and all of it belongs to you — no feed algorithm,
-no ads, no one else's rules.
+## Social media is about to change
+
+For twenty years, posting meant renting space on someone else's app. They
+chose the layout, ran the feed, kept your photos and your friends list, and
+could change the rules any day.
+
+AI changes that. Building an app used to take a team; now you can describe
+the one you want to Claude and have it online in an afternoon. When everyone
+can make their own, there's no reason for everyone to share one company's app.
+
+So the next socials will be:
+
+- **Yours** — your own site, your own address, your photos in your own storage
+- **Fully customizable** — your sections, colours, pages and icon, changed
+  whenever you like by asking Claude
+- **Decentralized** — no central app. Each site publishes a small public card
+  (`/social.json`), sites link to each other in a People tab, and you can log
+  in to a friend's site with your own instead of making an account
+
+This repo is a working start: a social site that looks and feels like a phone
+app, lives on your friends' home screens, and connects to everyone else's.
+Make yours, add your friends, and you're part of the network.
 
 <p align="center">
   <img src="assets/screens.png" alt="Intro, icon picker, photo grid, comments, log in with your own social, work page" width="100%">
