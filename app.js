@@ -497,37 +497,119 @@
     install: '<svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M12 8v6M9 11l3 3 3-3"/></svg>',
     bar: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9h19M15 13.5l2 2 3-3.5"/></svg>',
   };
+  HOW_ICONS.safari = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg>';
+  HOW_ICONS.dock = '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M6 20h12M9 16v4M15 16v4"/></svg>';
+  HOW_ICONS.link = '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
+  const ADD_IOS = ['add', 'Tap Add to Home Screen (not there? Tap View More ⌄ or scroll down)'];
+  // Every browser we know how to guide, keyed by what detectBrowser() returns.
+  // `open` = this browser can't add to the home screen; offer a button that
+  // reopens the page in one that can.
   const HOW_FLOW = {
-    ios26: [['more', 'Tap ••• at the bottom right'], ['share', 'Tap Share'], ['add', 'Tap Add to Home Screen (not there? Tap View More ⌄)'], ['done', 'Tap Add']],
-    ios: [['share', 'Tap Share at the bottom (the square with an arrow)'], ['add', 'Tap Add to Home Screen (not there? Tap View More ⌄ or scroll down)'], ['done', 'Tap Add at the top right']],
-    ipad: [['share', 'Tap Share at the top right'], ['add', 'Tap Add to Home Screen (not there? Tap View More ⌄ or scroll down)'], ['done', 'Tap Add at the top right']],
-    ioschrome: [['share', 'Tap Share at the right end of the address bar (no icon? Tap ••• bottom right, then Share)'], ['add', 'Scroll down the list and tap Add to Home Screen (not there? Tap Edit Actions and turn it on)'], ['done', 'Tap Add at the top right']],
-    android: [['menu', 'Tap ⋮ at the top right'], ['install', 'Tap Add to Home screen (or Install app)'], ['done', 'Tap Install']],
-    samsung: [['burger', 'Tap ☰ at the bottom right'], ['add', 'Tap Add page to, then Home screen'], ['done', 'Tap Install or Add']],
-    tablet: [['menu', 'Open your browser’s menu'], ['install', 'Choose Add to Home screen'], ['done', 'Tap Add']],
-    desktop: [['bar', 'Click the install icon at the right of the address bar'], ['install', 'No icon? Click ⋮ → Cast, save and share → Install page as app'], ['done', `Click Install — ${C.handle} opens in its own window`]],
+    'ios26': { label: 'Safari on iPhone (iOS 26+)', steps: [['more', 'Tap ••• at the bottom right'], ['share', 'Tap Share'], ADD_IOS, ['done', 'Leave “Open as Web App” on and tap Add']] },
+    'ios': { label: 'Safari on iPhone (iOS 16–18)', steps: [['share', 'Tap Share at the bottom (the square with an arrow)'], ADD_IOS, ['done', 'Tap Add at the top right']] },
+    'ios-old': { label: 'Safari on iPhone (iOS 15 or older)', steps: [['share', 'Tap Share at the bottom (the square with an arrow)'], ['add', 'Scroll down the list and tap Add to Home Screen'], ['done', 'Tap Add at the top right']] },
+    'ipad': { label: 'Safari on iPad', steps: [['share', 'Tap Share at the top right (no Share button? Tap ••• first)'], ADD_IOS, ['done', 'Tap Add']] },
+    'ios-chrome': { label: 'Chrome on iPhone', steps: [['share', 'Tap Share at the right end of the address bar (no icon? Tap ••• bottom right, then Share)'], ['add', 'Scroll down and tap Add to Home Screen (not there? Tap Edit Actions and turn it on)'], ['done', 'Tap Add at the top right']] },
+    'ios-firefox': { label: 'Firefox on iPhone', steps: [['burger', 'Tap ☰ at the bottom right'], ['share', 'Tap Share'], ['add', 'Tap Add to Home Screen'], ['done', 'Tap Add']] },
+    'ios-edge': { label: 'Edge on iPhone', steps: [['more', 'Tap ••• at the bottom'], ['share', 'Tap Share'], ['add', 'Tap Add to Home Screen'], ['done', 'Tap Add']] },
+    'ios-other': { label: 'Another browser on iPhone', steps: [['share', 'Find Share in your browser’s menu'], ['add', 'Tap Add to Home Screen'], ['done', 'Tap Add'], ['safari', 'Not there? Open this page in Safari instead']] },
+    'ios-needs-safari': { label: 'Older iPhone, not Safari', open: 'safari', steps: [['safari', 'On this iPhone only Safari can add apps to the home screen'], ['link', 'Tap Open in Safari below (or copy the link and paste it in Safari)'], ['add', 'Then follow the steps you see there']] },
+    'inapp-ios': { label: 'Inside another app on iPhone', open: 'safari', steps: [['safari', 'You opened this inside another app, which can’t add it to your home screen'], ['more', 'Tap Open in Safari below, or tap ••• in this app and choose Open in Safari / Open in browser'], ['add', 'Then follow the steps you see there']] },
+    'inapp-android': { label: 'Inside another app on Android', open: 'chrome', steps: [['link', 'You opened this inside another app, which can’t add it to your home screen'], ['menu', 'Tap Open in Chrome below, or tap ⋮ in this app and choose Open in browser'], ['add', 'Then follow the steps you see there']] },
+    'android': { label: 'Chrome on Android', steps: [['menu', 'Tap ⋮ at the top right'], ['install', 'Tap Add to Home screen (or Install app)'], ['done', 'Tap Install']] },
+    'android-edge': { label: 'Edge on Android', steps: [['burger', 'Tap ☰ at the bottom right'], ['install', 'Tap Add to phone'], ['done', 'Tap Install']] },
+    'samsung': { label: 'Samsung Internet', steps: [['burger', 'Tap ☰ at the bottom right'], ['add', 'Tap Add page to, then Home screen'], ['done', 'Tap Install or Add']] },
+    'android-firefox': { label: 'Firefox on Android', steps: [['menu', 'Tap ⋮ (top or bottom right)'], ['install', 'Tap Add app to Home screen (or Add to Home screen)'], ['done', 'Tap Add']] },
+    'android-opera': { label: 'Opera on Android', steps: [['menu', 'Tap ⋮ at the top right'], ['add', 'Tap Add to, then Home screen'], ['done', 'Tap Add']] },
+    'android-other': { label: 'Another browser on Android', steps: [['menu', 'Open your browser’s menu'], ['install', 'Choose Add to Home screen or Install app'], ['done', 'Tap Add']] },
+    'desktop-chrome': { label: 'Chrome on a computer', steps: [['bar', 'Click the install icon at the right of the address bar'], ['install', 'No icon? Click ⋮ → Cast, save and share → Install page as app'], ['done', `Click Install — ${C.handle} opens in its own window`]] },
+    'desktop-edge': { label: 'Edge on a computer', steps: [['bar', 'Click “App available” at the right of the address bar'], ['install', 'Not there? Click ⋯ → Apps → Install this site as an app'], ['done', 'Click Install']] },
+    'desktop-safari': { label: 'Safari on a Mac', steps: [['dock', 'Click File in the menu bar'], ['add', 'Click Add to Dock'], ['done', 'Click Add']] },
+    'desktop-other': { label: 'Firefox or an older browser on a computer', open: 'copy', steps: [['link', 'This browser can’t add sites as apps'], ['bar', 'Copy the link below and open it in Chrome, Edge or Safari'], ['done', 'Then follow the steps you see there']] },
   };
-  function howFlowKey() {
+  // Work out the exact browser, version and whether we're inside another
+  // app's built-in browser (Instagram, WhatsApp on Android, TikTok, …).
+  function detectBrowser() {
     const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isIOS) {
-      if (/CriOS/.test(ua)) return 'ioschrome';
-      if (/iPad/.test(ua) || navigator.platform === 'MacIntel') return 'ipad';
-      const v = parseInt((ua.match(/Version\/(\d+)/) || [])[1] || '0', 10);
-      return v >= 26 ? 'ios26' : 'ios';
+    const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    const ios = /iPad|iPhone|iPod/.test(ua) || iPadOS;
+    const android = /Android/.test(ua);
+    const inApp = /Instagram|FBAN|FBAV|FB_IAB|LinkedInApp|Snapchat|TikTok|musical_ly|Bytedance|Line\/|MicroMessenger|Twitter|Pinterest|GSA\//.test(ua)
+      || (android && /; wv\)/.test(ua));
+    if (ios) {
+      if (inApp) return 'inapp-ios';
+      const os = ua.match(/OS (\d+)_(\d+)/) || [];
+      const osV = Number(os[1] || 0) + Number(os[2] || 0) / 100;
+      const other = /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Brave/.test(ua);
+      if (other && osV && osV < 16.04) return 'ios-needs-safari';   // only Safari could add before iOS 16.4
+      if (/CriOS/.test(ua)) return 'ios-chrome';
+      if (/FxiOS/.test(ua)) return 'ios-firefox';
+      if (/EdgiOS/.test(ua)) return 'ios-edge';
+      if (other || !/Safari/.test(ua)) return 'ios-other';
+      if (/iPad/.test(ua) || iPadOS) return 'ipad';
+      const v = Number((ua.match(/Version\/(\d+)/) || [])[1] || osV || 0);
+      return v >= 26 ? 'ios26' : v >= 16 ? 'ios' : 'ios-old';
     }
-    if (/Android/.test(ua)) return /SamsungBrowser/.test(ua) ? 'samsung' : 'android';
-    return window.matchMedia('(pointer: coarse)').matches ? 'tablet' : 'desktop';
+    if (android) {
+      if (inApp) return 'inapp-android';
+      if (/SamsungBrowser/.test(ua)) return 'samsung';
+      if (/EdgA/.test(ua)) return 'android-edge';
+      if (/Firefox/.test(ua)) return 'android-firefox';
+      if (/OPR|Opera/.test(ua)) return 'android-opera';
+      if (/Chrome\//.test(ua)) return 'android';
+      return 'android-other';
+    }
+    if (/Edg\//.test(ua)) return 'desktop-edge';
+    if (/Chrome\//.test(ua)) return 'desktop-chrome';
+    if (/Safari/.test(ua) && Number((ua.match(/Version\/(\d+)/) || [])[1]) >= 17) return 'desktop-safari';
+    return 'desktop-other';
   }
+  const DETECTED = detectBrowser();
+  let howKey = DETECTED;
+  // Chrome, Edge, Samsung and other Chromium browsers let a page offer a
+  // one-tap add. Safari never does, so iPhones always get the steps.
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; renderHowTo(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; toast(`${C.handle} is on your home screen`); renderHowTo(); });
+  $('one-tap-add').addEventListener('click', async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    const { outcome } = await installEvt.userChoice.catch(() => ({}));
+    installEvt = null; renderHowTo();
+    if (outcome === 'accepted') showStep(obStep + 1);
+  });
+  function openElsewhere(kind) {
+    const here = location.href;
+    if (kind === 'safari') location.href = 'x-safari-' + here;
+    else if (kind === 'chrome') location.href = `intent://${here.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(here)};end`;
+    // If nothing opened (or it's a computer), hand them the link instead.
+    setTimeout(() => {
+      if (document.visibilityState !== 'visible') return;
+      (navigator.clipboard ? navigator.clipboard.writeText(here) : Promise.reject()).then(
+        () => toast(kind === 'copy' ? 'Link copied' : `Link copied — paste it in ${kind === 'chrome' ? 'Chrome' : 'Safari'}`),
+        () => prompt('Copy this link:', here));
+    }, kind === 'copy' ? 0 : 1200);
+  }
+  $('open-elsewhere').addEventListener('click', () => openElsewhere(HOW_FLOW[howKey].open));
+  $('how-pick').replaceChildren(...Object.entries(HOW_FLOW).map(([k, f]) => el('option', { value: k, text: f.label })));
+  $('how-pick').addEventListener('change', (e) => { howKey = e.target.value; renderHowTo(); });
   function renderHowTo() {
-    const flow = HOW_FLOW[howFlowKey()];
-    $('how-steps').replaceChildren(...flow.map(([icon, text], i) => {
+    const flow = HOW_FLOW[howKey];
+    $('how-pick').value = howKey;
+    $('how-detected').textContent = howKey === DETECTED ? 'Steps for your phone:' : 'Showing steps for:';
+    const oneTap = !!installEvt && howKey === DETECTED;
+    $('one-tap-add').hidden = !oneTap;
+    $('how-by-hand').hidden = !oneTap;
+    const open = $('open-elsewhere');
+    open.hidden = !flow.open;
+    open.textContent = { safari: 'Open in Safari', chrome: 'Open in Chrome', copy: 'Copy the link' }[flow.open] || '';
+    $('how-steps').replaceChildren(...flow.steps.map(([icon, text], i) => {
       const art = el('span', { class: 'wel-how-icon' });
       art.innerHTML = HOW_ICONS[icon];
       art.prepend(el('b', { text: String(i + 1) }));
       return el('li', { class: 'wel-how-step' }, art, el('span', { class: 'wel-how-text', text }));
     }));
-    const ios = howFlowKey().startsWith('ios') || howFlowKey() === 'ipad';
+    const ios = /^ios|^ipad/.test(howKey);
     $('icon-how').textContent = `Already on your home screen? Phones keep the old icon: remove ${C.handle} there, then `
       + (ios ? 'in Safari tap Share → Add to Home Screen again.' : 'add it again from your browser’s menu.');
   }
