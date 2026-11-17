@@ -409,6 +409,5 @@ a.btn-ghost { text-align: center; text-decoration: none; }
 
 /* home-screen step: detected browser + picker, one-tap add */
 .how-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 20px 0 0; font-size: .82rem; color: var(--ink-2, var(--muted)); }
-.how-head select { font: inherit; font-weight: 600; color: var(--ink); max-width: 100%; padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
 .btn-primary.one-tap { margin: 12px 0 0; }
 .how-by-hand { margin: 14px 0 -8px; }
