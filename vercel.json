@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/social.json", "destination": "/api/social" },
+    { "source": "/make", "destination": "/make.html" }
+  ],
+  "functions": {
+    "api/manifest.js": { "includeFiles": "icons/choices/**" }
+  }
+}
