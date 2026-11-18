@@ -6,7 +6,7 @@
   ownerPhoto: 'selfies/me-1.jpg',
   bio: 'One line about you.',
   // First screen of the intro, under "hi, this is <handle>'s social."
-  intro: 'I got tired of the big apps, so I made my own. Daily life and work in one place, and the people closest to me can follow along and comment.',
+  intro: 'I got tired of the big apps, so I made my own.',
   // Text on the coloured home-screen icon choices ('' = a plain dot).
   iconText: '',
 

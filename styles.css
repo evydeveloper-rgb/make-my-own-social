@@ -302,17 +302,18 @@ a.feed-card { display: block; color: inherit; text-decoration: none; }
 
 /* ---------- make your own ---------- */
 .own-hero { padding: 22px 18px 6px; }
-.hello-main .lede { margin-bottom: 18px; }
-.hello-next { position: sticky; bottom: calc(12px + var(--safe-bottom)); z-index: 2; box-shadow: 0 8px 24px rgba(42, 29, 26, .22); }
+.hello-main .lede { margin-bottom: 14px; }
+/* Next sits on its own solid strip, so text scrolls behind it instead of under the words */
+.hello-go { position: sticky; bottom: calc(-28px - var(--safe-bottom)); z-index: 2; margin: 14px -22px calc(-28px - var(--safe-bottom)); padding: 10px 22px calc(14px + var(--safe-bottom)); background: var(--bg); border-top: 1px solid var(--line); }
+.hello-next { margin-top: 0; }
 .future { padding: 20px 18px; border-radius: 20px; background: var(--accent-soft); }
 .future h2 { margin-bottom: 12px; }
-.future p { margin: 0 0 12px; }
-.future .future-lead { margin: 18px 0 10px; font-weight: 700; }
+.future p { margin: 0; }
+.future .future-lead { margin: 14px 0 8px; font-weight: 700; }
 .future-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.future-list li { padding: 12px 14px; border-radius: 14px; background: var(--surface); }
+.future-list li { padding: 9px 13px; border-radius: 14px; background: var(--surface); }
 .future-list strong, .future-list span { display: block; }
 .future-list span { font-size: .88rem; color: var(--ink-2); }
-.future .future-end { margin: 16px 0 0; font-weight: 600; }
 .file-card { display: flex; gap: 14px; align-items: center; }
 .file-icon { width: 48px; height: 56px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
 .file-meta strong { display: block; font-size: .9rem; word-break: break-all; }
@@ -461,7 +462,7 @@ a.btn-ghost { text-align: center; text-decoration: none; }
   .ob-step:not([data-step="0"]) { width: 100%; max-width: 420px; margin: 0 auto; }
   .ob-step[data-step="0"]:not([hidden]) { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 560px); grid-template-rows: auto auto; grid-template-areas: "hello idea" "go idea"; column-gap: 64px; justify-content: center; align-content: center; }
   .hello-main { grid-area: hello; align-self: end; }
-  .hello-next { grid-area: go; align-self: start; margin-top: 8px; position: static; box-shadow: none; }
+  .hello-go { grid-area: go; align-self: start; position: static; margin: 8px 0 0; padding: 0; background: none; border: 0; }
   .ob-step[data-step="0"] .future { grid-area: idea; padding: 32px 34px; }
   .future h2 { font-size: 2rem; }
   .hello-photo { width: 132px; height: 132px; margin-bottom: 26px; }
