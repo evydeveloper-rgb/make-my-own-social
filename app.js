@@ -187,6 +187,8 @@
     async members() {
       return this.load().users.map(u => ({ id: u.id, name: u.name, email: u.email }));
     },
+    async banner() { return this.load().banner || null; },
+    async setBanner(banner) { const d = this.load(); d.banner = banner; this.save(d); },
     async linkedinPosts() { return this.load().linkedin || []; },
     async addLinkedin(urn, posted_at) {
       const d = this.load(); d.linkedin = d.linkedin || [];
@@ -312,6 +314,15 @@
       if (error) throw error;
       return data.map(p => ({ id: p.id, name: p.display_name, site: p.site_url }));
     },
+    async banner() {
+      const { data, error } = await this.sb.from('site_settings').select('banner').eq('id', 1).maybeSingle();
+      if (error) throw error;
+      return data ? data.banner : null;
+    },
+    async setBanner(banner) {
+      const { error } = await this.sb.from('site_settings').upsert({ id: 1, banner, updated_at: new Date().toISOString() });
+      if (error) throw error;
+    },
     async linkedinPosts() {
       const { data, error } = await this.sb.from('linkedin_posts').select('id, urn, posted_at').order('posted_at', { ascending: false });
       if (error) throw error;
@@ -375,8 +386,6 @@
   const isHomeScreenApp = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   function appUrl() {
     const q = new URLSearchParams({ t: store.get('es-theme', 'blush') });
-    const pic = store.get('es-pic', '');
-    if (pic && !pic.startsWith('data:')) q.set('pic', pic);
     return new URL('./?' + q, location.href).href;
   }
   function syncAppUrl() {
@@ -391,9 +400,8 @@
   }
   function readChoicesFromUrl() {
     const q = new URLSearchParams(location.search);
-    const t = q.get('t'), pic = q.get('pic');
+    const t = q.get('t');
     if (t && THEMES.some(x => x.id === t)) store.set('es-theme', t);
-    if (pic && C.selfies.includes(pic)) store.set('es-pic', pic);
   }
 
   // ---------- look ----------
@@ -405,12 +413,26 @@
     document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('on', b.dataset.t === id));
     syncAppUrl();
   }
-  function currentPic() { return store.get('es-pic', C.selfies[2] || C.selfies[0] || C.ownerPhoto); }
-  async function applyPic(src) {
-    if (!store.set('es-pic', src)) { toast('That picture is too big to save here.'); return; }
+  // The banner is the owner's choice and every visitor sees the same one.
+  const DEFAULT_BANNER = C.selfies[2] || C.selfies[0] || C.ownerPhoto;
+  function showBanner(src) {
+    state.banner = src;
     $('cover-img').src = src; $('enter-cover').src = src; $('rail-cover').src = src;
     document.querySelectorAll('.pic-opt[data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === src));
-    syncAppUrl();
+  }
+  async function loadBanner() {
+    try {
+      const src = (await db.banner()) || DEFAULT_BANNER;
+      showBanner(src); store.set('es-banner', src);
+    } catch (_) { /* keep the banner already showing */ }
+  }
+  async function chooseBanner(src) {
+    const before = state.banner;
+    showBanner(src);
+    try {
+      await db.setBanner(src); store.set('es-banner', src);
+      buildPicGrid($('pic-grid-2')); toast('Banner updated for everyone');
+    } catch (err) { showBanner(before); toast('Couldn’t save the banner: ' + err.message); }
   }
 
   // ---------- home-screen icon ----------
@@ -474,11 +496,10 @@
     }, el('span', { class: 'swatch' }, t.sw.map(c => el('i', { style: `background:${c}` }))), el('strong', { text: t.name }))));
   }
   function buildPicGrid(target) {
-    const uploaded = store.get('es-pic-upload', null);
-    const srcs = [...C.selfies, ...(uploaded ? [uploaded] : [])];
-    const cur = currentPic();
+    const cur = state.banner;
+    const srcs = [...C.selfies, ...(cur && !C.selfies.includes(cur) ? [cur] : [])];
     target.replaceChildren(
-      ...srcs.map(src => el('button', { type: 'button', class: 'pic-opt' + (src === cur ? ' on' : ''), 'data-src': src, onclick: () => applyPic(src), 'aria-label': 'Use this picture' },
+      ...srcs.map(src => el('button', { type: 'button', class: 'pic-opt' + (src === cur ? ' on' : ''), 'data-src': src, onclick: () => chooseBanner(src), 'aria-label': 'Use this picture' },
         el('img', { src, alt: '', loading: 'lazy' }))),
       el('button', { type: 'button', class: 'pic-opt upload', onclick: () => $('pic-upload').click() }, el('span', null, el('b', { text: '+' }), 'your own')),
     );
@@ -487,10 +508,9 @@
     const f = e.target.files[0]; e.target.value = '';
     if (!f) return;
     try {
-      const url = await blobToDataUrl(await shrinkImage(f, 900, 0.8));
-      store.set('es-pic-upload', url);
-      await applyPic(url);
-      buildPicGrid($('pic-grid-2'));
+      let url = await blobToDataUrl(await shrinkImage(f, 1600, 0.8));
+      if (url.length > 650000) url = await blobToDataUrl(await shrinkImage(f, 1100, 0.7));
+      await chooseBanner(url);
     } catch (err) { toast(err.message); }
   });
 
@@ -1075,7 +1095,12 @@
     if (!openSheet) return;
     $(openSheet).hidden = true; $('backdrop').hidden = true; openSheet = null; state.openPost = null;
   }
-  $('settings-open').addEventListener('click', () => showSheet('settings-sheet'));
+  $('settings-open').addEventListener('click', () => {
+    const m = me();
+    $('banner-card').hidden = !(m && m.isOwner);
+    buildPicGrid($('pic-grid-2'));
+    showSheet('settings-sheet');
+  });
   $('backdrop').addEventListener('click', closeSheet);
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheet));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
@@ -1275,8 +1300,7 @@
     if (isHomeScreenApp()) store.set('es-onboarded', true);
     buildThemeGrid($('theme-grid-2'));
     applyTheme(store.get('es-theme', 'blush'));
-    buildPicGrid($('pic-grid-2'));
-    applyPic(currentPic());
+    showBanner(store.get('es-banner', DEFAULT_BANNER));
     buildIconGrid();
     renderHowTo();
     renderStatic();
@@ -1294,6 +1318,7 @@
       try { await live.init(); live.sb.auth.onAuthStateChange(() => {}); }
       catch (err) { toast(err.message); }
     }
+    loadBanner();
     await handleArrivals(arrival);
     if (store.get('es-onboarded', false)) enterApp(); else startOnboarding();
     if (pendingConnect) openConnect(pendingConnect);

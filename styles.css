@@ -288,6 +288,8 @@ code { font-size: .85em; background: var(--sunken); padding: 1px 5px; border-rad
 .text-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 700; }
 .settings-body { padding: 18px; }
 .settings-body .card { margin: 0 0 12px; }
+.settings-body #banner-card { margin-bottom: 20px; }
+.banner-note { margin-bottom: 10px !important; }
 .settings-body .list-title { margin: 0 0 4px; }
 .settings-body .look-note { margin: 0 0 14px; }
 a.feed-card { display: block; color: inherit; text-decoration: none; }

@@ -253,6 +253,17 @@ create policy "anyone reads linkedin posts" on public.linkedin_posts for select 
 create policy "owner adds linkedin posts" on public.linkedin_posts for insert to authenticated with check (private.is_owner());
 create policy "owner removes linkedin posts" on public.linkedin_posts for delete to authenticated using (private.is_owner());
 
+-- ---------- the banner the owner picked, shown to every visitor ----------
+create table if not exists public.site_settings (
+  id int primary key default 1 check (id = 1),
+  banner text check (length(banner) < 700000),
+  updated_at timestamptz not null default now()
+);
+alter table public.site_settings enable row level security;
+create policy "anyone reads site settings" on public.site_settings for select using (true);
+create policy "owner adds site settings" on public.site_settings for insert to authenticated with check (private.is_owner());
+create policy "owner edits site settings" on public.site_settings for update to authenticated using (private.is_owner()) with check (private.is_owner());
+
 -- ---------- last step: after you sign up on your site, make yourself the owner ----------
 -- update public.profiles set is_owner = true
 --   where id = (select id from auth.users where email = 'you@example.com');
