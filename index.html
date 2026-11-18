@@ -79,7 +79,7 @@
           </div>
           <h1 class="display">all set.</h1>
           <p class="lede">Have a look around. You can change the colours in settings, under the gear icon.</p>
-          <button class="btn-primary" id="enter-btn" type="button">See <span data-c="name"></span>’s life</button>
+          <button class="btn-primary" id="enter-btn" type="button">Enter <span data-c="handle"></span>’s social</button>
           <button class="btn-ghost" data-back type="button">← Back</button>
         </div>
       </div>
@@ -188,18 +188,28 @@
         <section class="tab" id="tab-people" hidden>
           <div class="own-hero">
             <h2 class="display-sm">people</h2>
-            <p class="muted">Friends who have their own social. Tap one to open it.</p>
+            <p class="muted" id="people-sub"></p>
           </div>
+          <nav class="chips people-views" id="people-views" aria-label="People views">
+            <button type="button" class="chip on" data-view="feed" aria-pressed="true">Feed</button>
+            <button type="button" class="chip" data-view="following" aria-pressed="false">Following</button>
+          </nav>
+          <div id="people-feed-view">
+            <div id="people-feed"></div>
+            <p class="empty" id="people-feed-empty" hidden></p>
+          </div>
+          <div id="people-following-view" hidden>
           <div id="people-list"></div>
           <p class="empty" id="people-empty" hidden>No one added yet.</p>
           <form class="card add-person" id="add-person" hidden>
             <h3>Add someone’s social</h3>
             <div class="add-row">
-              <input id="add-person-url" type="url" inputmode="url" placeholder="their-social.vercel.app" autocomplete="off" required>
+              <input id="add-person-url" type="text" inputmode="url" autocapitalize="none" spellcheck="false" placeholder="their-social.vercel.app" autocomplete="off" required>
               <button type="submit">Add</button>
             </div>
             <p class="form-status" id="add-person-status" role="status"></p>
           </form>
+          </div>
         </section>
 
         <!-- you -->
@@ -311,7 +321,7 @@
           <p class="site-login-h">Have your own social?</p>
           <p class="muted small">Log in with it — no new account, no password here.</p>
           <div class="add-row">
-            <input id="site-login-url" type="url" inputmode="url" placeholder="your-social.vercel.app" autocomplete="url" required>
+            <input id="site-login-url" type="text" inputmode="url" autocapitalize="none" spellcheck="false" placeholder="your-social.vercel.app" autocomplete="url" required>
             <button type="submit">Log in</button>
           </div>
           <p class="form-status" id="site-login-status" role="status"></p>

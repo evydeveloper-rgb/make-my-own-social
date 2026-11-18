@@ -70,6 +70,6 @@ Mention that free Supabase projects pause after about a week with no visits.
 - Posting: log in → **+** → photo, caption, section.
 - Members: the **you** tab lists everyone who signs up.
 - Instagram and LinkedIn (optional): make a free account at composio.dev. In dashboard.composio.dev, open the project's Settings → API Keys and copy the project key that starts with `ak_` (a `ck_` key won't work). In the **you** tab, paste it under **Your accounts**, then tap **Connect**. Instagram needs a Creator or Business account.
-- People tab: add friends' socials by address. On anyone's social they can now
+- People tab: add friends' socials by address under **Following**; their latest public posts appear under **Feed**. On anyone's social they can now
   tap **Log in → Have your own social?** and type their address — no new
   account needed.

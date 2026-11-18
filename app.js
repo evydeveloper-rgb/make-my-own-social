@@ -374,7 +374,7 @@
   // =====================================================================
   //  STATE
   // =====================================================================
-  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], linkedin: [], openPost: null, authMode: 'signup', after: null };
+  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], linkedin: [], peopleView: 'feed', openPost: null, authMode: 'signup', after: null };
   const me = () => db.session();
 
   // ---------- carrying choices onto the home screen ----------
@@ -659,7 +659,7 @@
   }
   function startOnboarding() {
     renderHowTo();
-    if (COMPUTER) $('hello-next').textContent = `See ${C.ownerName}’s life`;
+    if (COMPUTER) $('hello-next').textContent = `Enter ${C.handle}’s social`;
     $('app').hidden = true; $('onboard').hidden = false;
     showStep(0);
   }
@@ -971,6 +971,12 @@
     if (!r.ok) throw new Error('no card');
     return r.json();
   }
+  // One request per site each time the tab opens, shared by both views.
+  const cardMemo = new Map();
+  function cardFor(origin) {
+    if (!cardMemo.has(origin)) cardMemo.set(origin, fetchCard(origin));
+    return cardMemo.get(origin);
+  }
   function personCard(origin, canRemove) {
     const host = new URL(origin).hostname;
     const img = el('img', { alt: '' });
@@ -985,7 +991,7 @@
         if (!confirm(`Remove ${host} from people?`)) return;
         try { await db.removePerson(origin); renderPeople(); } catch (err) { toast(err.message); }
       } }) : null);
-    fetchCard(origin).then(c => {
+    cardFor(origin).then(c => {
       if (c.name) name.textContent = String(c.name).slice(0, 60);
       if (httpsOnly(c.avatar)) img.src = c.avatar;
       if (c.bio) { bio.textContent = String(c.bio).slice(0, 200); bio.hidden = false; }
@@ -999,13 +1005,73 @@
     }).catch(() => { card.classList.add('offline'); bio.textContent = 'Couldn’t load their card right now.'; bio.hidden = false; });
     return card;
   }
+  function friendPostCard(x) {
+    return el('a', { class: 'feed-card', href: x.url, target: '_blank', rel: 'noopener' },
+      el('div', { class: 'fc-head' }, el('img', { src: x.avatar, alt: '' }),
+        el('div', null, el('strong', { text: x.name }), el('span', { text: ago(x.date) })),
+        x.section ? el('span', { class: 'fc-source', text: x.section }) : null),
+      x.caption ? el('p', { class: 'fc-text', text: x.caption }) : null,
+      x.photo ? el('img', { class: 'fc-img', src: x.photo, alt: '', loading: 'lazy' }) : null);
+  }
+  // Everyone's latest public posts, newest first. Each site's card is read as
+  // plain text and only https pictures are shown, since other people write it.
+  let peopleFeedRun = 0;
+  async function renderPeopleFeed(urls) {
+    const run = ++peopleFeedRun, m = me();
+    const empty = $('people-feed-empty');
+    $('people-feed').replaceChildren();
+    empty.hidden = false;
+    if (!urls.length) {
+      empty.textContent = m && m.isOwner ? 'Add someone under Following to see their posts here.' : 'Nothing here yet.';
+      return;
+    }
+    empty.textContent = 'Loading…';
+    const cards = await Promise.allSettled(urls.map(cardFor));
+    if (run !== peopleFeedRun) return;
+    const posts = cards.flatMap((r, i) => {
+      if (r.status !== 'fulfilled') return [];
+      const c = r.value, url = urls[i];
+      return (Array.isArray(c.latest) ? c.latest : []).map(p => ({
+        url, name: String(c.name || new URL(url).hostname).slice(0, 60), avatar: httpsOnly(c.avatar),
+        section: String(p.section || '').slice(0, 24), caption: String(p.caption || '').slice(0, 600),
+        photo: httpsOnly(p.photo), date: new Date(p.date),
+      }));
+    }).filter(p => !isNaN(p.date) && p.date <= Date.now() + 864e5 && (p.caption || p.photo))
+      .map(p => ({ ...p, date: p.date.toISOString() }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const out = []; let last = '';
+    for (const p of posts) {
+      const d = dayLabel(p.date);
+      if (d !== last) { out.push(el('p', { class: 'day-label', text: d })); last = d; }
+      out.push(friendPostCard(p));
+    }
+    $('people-feed').replaceChildren(...out);
+    empty.hidden = posts.length > 0;
+    empty.textContent = cards.some(r => r.status === 'fulfilled') ? 'No posts yet.' : 'Couldn’t load their posts right now.';
+  }
+  function showPeopleView() {
+    const feed = state.peopleView === 'feed';
+    $('people-feed-view').hidden = !feed; $('people-following-view').hidden = feed;
+    $('people-sub').textContent = feed ? `Posts from everyone ${C.ownerName} follows.` : `The socials ${C.ownerName} follows. Tap one to open it.`;
+    document.querySelectorAll('#people-views .chip').forEach(c => {
+      const on = c.dataset.view === state.peopleView;
+      c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on));
+    });
+  }
+  $('people-views').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.peopleView = b.dataset.view; showPeopleView(); $('main').scrollTop = 0;
+  });
   async function renderPeople() {
     const m = me();
+    showPeopleView();
+    cardMemo.clear();
     $('add-person').hidden = !(m && m.isOwner);
     let urls = [];
     try { urls = await db.people(); } catch (err) { toast(err.message); }
     $('people-list').replaceChildren(...urls.map(u => personCard(u, !!(m && m.isOwner))));
     $('people-empty').hidden = urls.length > 0;
+    renderPeopleFeed(urls);
   }
   $('add-person').addEventListener('submit', async (e) => {
     e.preventDefault();
