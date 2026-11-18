@@ -619,10 +619,16 @@
   }
   function startOnboarding() {
     renderHowTo();
+    if (COMPUTER) $('hello-next').textContent = `See ${C.ownerName}’s life`;
     $('app').hidden = true; $('onboard').hidden = false;
     showStep(0);
   }
-  document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => showStep(obStep + 1)));
+  // Computers get the first page only: the other steps are about the home screen.
+  const COMPUTER = window.matchMedia('(min-width: 960px) and (hover: hover) and (pointer: fine)').matches;
+  document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => {
+    if (COMPUTER && obStep === 0) { store.set('es-onboarded', true); enterApp(); return; }
+    showStep(obStep + 1);
+  }));
   document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showStep(obStep - 1)));
   $('enter-btn').addEventListener('click', () => { store.set('es-onboarded', true); enterApp(); });
   $('replay-intro').addEventListener('click', startOnboarding);
@@ -1222,9 +1228,7 @@
       catch (err) { toast(err.message); }
     }
     await handleArrivals(arrival);
-    // The add-to-home-screen intro is for phones; computers go straight in.
-    const computer = window.matchMedia('(min-width: 960px) and (hover: hover) and (pointer: fine)').matches;
-    if (computer || store.get('es-onboarded', false)) enterApp(); else startOnboarding();
+    if (store.get('es-onboarded', false)) enterApp(); else startOnboarding();
     if (pendingConnect) openConnect(pendingConnect);
     if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
   }

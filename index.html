@@ -23,14 +23,28 @@
     <!-- ============ ONBOARDING ============ -->
     <section class="onboard" id="onboard" hidden>
       <div class="onboard-inner">
-        <div class="steps-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="steps-dots phone-only" aria-hidden="true"><span></span><span></span><span></span></div>
 
         <!-- 1 · hi -->
         <div class="ob-step" data-step="0">
+          <div class="hello-main">
           <img class="hello-photo" data-c-src="ownerPhoto" alt="">
           <h1 class="display">hi, this is <span data-c="handle"></span>’s social.</h1>
           <p class="lede" data-c="intro"></p>
-          <button class="btn-primary" data-next type="button">Next</button>
+          </div>
+          <section class="future">
+            <h2 class="display-sm">Social media is about to change.</h2>
+            <p>For twenty years, posting meant renting space on someone else’s app. They ran the feed, kept your photos and could change the rules any day.</p>
+            <p>AI changes that. Anyone can now describe the app they want and have it online in an afternoon.</p>
+            <p class="future-lead">So the next socials will be:</p>
+            <ul class="future-list">
+              <li><strong>Yours</strong><span>Your own site, your own address, your photos in your own storage.</span></li>
+              <li><strong>Fully customizable</strong><span>Your sections, colours, pages and icon, changed whenever you like by asking Claude.</span></li>
+              <li><strong>Decentralized</strong><span>No central app. Sites link to each other, and you log in to a friend’s site with your own.</span></li>
+            </ul>
+            <p class="future-end">This site is one of them.</p>
+          </section>
+          <button class="btn-primary hello-next" id="hello-next" data-next type="button">Next</button>
         </div>
 
         <!-- 2 · home screen (same layout as Sudo 1.0.64) -->
@@ -212,18 +226,6 @@
           </div>
           <div class="own-block">
           <div class="own-hero" id="make-your-own">
-            <section class="future">
-              <h2 class="display-sm">Social media is about to change.</h2>
-              <p>For twenty years, posting meant renting space on someone else’s app. They chose the layout, ran the feed, kept your photos and your friends list, and could change the rules any day.</p>
-              <p>AI changes that. You can describe the app you want to Claude and have it online in an afternoon. When everyone can make their own, there’s no reason for everyone to share one company’s app.</p>
-              <p class="future-lead">So the next socials will be:</p>
-              <ul class="future-list">
-                <li><strong>Yours</strong><span>Your own site, your own address, your photos in your own storage.</span></li>
-                <li><strong>Fully customizable</strong><span>Your sections, colours, pages and icon, changed whenever you like by asking Claude.</span></li>
-                <li><strong>Decentralized</strong><span>No central app. Sites link to each other, and you log in to a friend’s site with your own.</span></li>
-              </ul>
-              <p class="future-end">This site is one of them. Make yours, add your friends, and you’re part of the network.</p>
-            </section>
             <p class="eyebrow">make your own</p>
             <h2 class="display-sm">want one like this?</h2>
             <p class="lede">Download the skill file and give it to Claude (or any coding agent). It builds your own version — your sections, your colours, your friends — and puts it online for free. With your own social you can log in to <span data-c="name"></span>’s (and your friends’) with one tap, no extra account.</p>
