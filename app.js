@@ -187,6 +187,13 @@
     async members() {
       return this.load().users.map(u => ({ id: u.id, name: u.name, email: u.email }));
     },
+    async linkedinPosts() { return this.load().linkedin || []; },
+    async addLinkedin(urn, posted_at) {
+      const d = this.load(); d.linkedin = d.linkedin || [];
+      if (d.linkedin.some(x => x.urn === urn)) throw new Error('duplicate');
+      d.linkedin.push({ id: uid(), urn, posted_at }); this.save(d);
+    },
+    async removeLinkedin(id) { const d = this.load(); d.linkedin = (d.linkedin || []).filter(x => x.id !== id); this.save(d); },
     async people() { return this.load().people || []; },
     async addPerson(url) { const d = this.load(); d.people = [...new Set([...(d.people || []), url])]; this.save(d); },
     async removePerson(url) { const d = this.load(); d.people = (d.people || []).filter(u => u !== url); this.save(d); },
@@ -305,6 +312,19 @@
       if (error) throw error;
       return data.map(p => ({ id: p.id, name: p.display_name, site: p.site_url }));
     },
+    async linkedinPosts() {
+      const { data, error } = await this.sb.from('linkedin_posts').select('id, urn, posted_at').order('posted_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    async addLinkedin(urn, posted_at) {
+      const { error } = await this.sb.from('linkedin_posts').insert({ urn, posted_at });
+      if (error) throw new Error(error.code === '23505' ? 'duplicate' : error.message);
+    },
+    async removeLinkedin(id) {
+      const { error } = await this.sb.from('linkedin_posts').delete().eq('id', id);
+      if (error) throw error;
+    },
     async people() {
       const { data, error } = await this.sb.from('people').select('url').order('added_at');
       if (error) throw error;
@@ -343,7 +363,7 @@
   // =====================================================================
   //  STATE
   // =====================================================================
-  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], openPost: null, authMode: 'signup', after: null };
+  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], linkedin: [], openPost: null, authMode: 'signup', after: null };
   const me = () => db.session();
 
   // ---------- carrying choices onto the home screen ----------
@@ -662,6 +682,7 @@
       toast('Could not load posts: ' + err.message);
       state.posts = [];
     }
+    try { state.linkedin = await db.linkedinPosts(); } catch (_) { state.linkedin = []; }
     renderAll(); renderHome(); renderWork();
     loadExternal();
     if (state.tab === 'you') renderYou();
@@ -765,6 +786,49 @@
       x.imageUrl ? el('img', { class: 'fc-img', src: x.imageUrl, alt: '', loading: 'lazy' }) : null,
       el('div', { class: 'fc-foot' }, el('span', { text: `♥ ${x.likeCount}` }), el('span', { text: `${x.commentCount} comment${x.commentCount === 1 ? '' : 's'}` })));
   }
+  // LinkedIn lets apps post but not read, so old posts are shown through its embed.
+  function linkedinCard(x) {
+    const m = me();
+    return el('article', { class: 'feed-card li-card' },
+      el('div', { class: 'fc-head' }, el('img', { src: C.ownerPhoto, alt: '' }),
+        el('div', null, el('strong', { text: C.ownerName }), el('span', { text: ago(x.created_at) })),
+        el('span', { class: 'fc-source', text: 'LinkedIn' })),
+      el('iframe', { class: 'li-frame', src: `https://www.linkedin.com/embed/feed/update/${x.urn}`, title: 'LinkedIn post', loading: 'lazy' }),
+      el('div', { class: 'fc-foot' },
+        el('a', { href: `https://www.linkedin.com/feed/update/${x.urn}/`, target: '_blank', rel: 'noopener', text: 'Open on LinkedIn →' }),
+        m && m.isOwner ? el('button', { type: 'button', text: 'Remove', onclick: async () => {
+          if (!confirm('Remove this post from your site? It stays on LinkedIn.')) return;
+          try { await db.removeLinkedin(x.id); state.linkedin = state.linkedin.filter(y => y.id !== x.id); renderAll(); toast('Removed'); } catch (err) { toast(err.message); }
+        } }) : null));
+  }
+  // Accepts a post link, a /feed/update/ link or LinkedIn's embed code.
+  function linkedinUrn(text) {
+    let t = String(text);
+    try { t = decodeURIComponent(t); } catch (_) {}
+    if (!/linkedin\.com|urn:li:/i.test(t)) return null;
+    const m = t.match(/urn:li:(activity|share|ugcPost):(\d{10,25})/) || t.match(/(activity)[-:](\d{10,25})/);
+    return m ? `urn:li:${m[1]}:${m[2]}` : null;
+  }
+  // The first 41 bits of a LinkedIn id are the moment the post was made.
+  function linkedinDate(urn) {
+    const ms = Number(BigInt(urn.split(':').pop()) >> 22n);
+    return ms > Date.UTC(2003, 0, 1) && ms < Date.now() + 864e5 ? new Date(ms).toISOString() : new Date().toISOString();
+  }
+  $('linkedin-add').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = $('linkedin-status'); status.className = 'form-status err';
+    const urn = linkedinUrn($('linkedin-url').value);
+    if (!urn) { status.textContent = 'That doesn’t look like a link to a LinkedIn post.'; return; }
+    $('linkedin-save').disabled = true; status.className = 'form-status'; status.textContent = 'Adding…';
+    try {
+      await db.addLinkedin(urn, linkedinDate(urn));
+      state.linkedin = await db.linkedinPosts();
+      $('linkedin-url').value = ''; status.textContent = ''; renderAll(); toast('Added');
+    } catch (err) {
+      status.className = 'form-status err';
+      status.textContent = err.message === 'duplicate' ? 'That post is already on your site.' : err.message;
+    } finally { $('linkedin-save').disabled = false; }
+  });
   async function loadExternal() {
     if (!LIVE) return;
     try {
@@ -825,17 +889,20 @@
   }
 
   function renderAll() {
+    const owner = me();
+    $('linkedin-add').hidden = !(owner && owner.isOwner && state.source === 'linkedin');
     $('rail-login').hidden = !!me();
     // A post sent to Instagram from here shows once, not twice.
-    const sent = new Set(state.posts.map(p => String((p.shared_to || {}).instagram)));
-    const items = [...state.posts.filter(p => p.visibility === 'everyone'), ...state.external.filter(x => !sent.has(String(x.id)))]
+    const sent = new Set(state.posts.flatMap(p => Object.values(p.shared_to || {}).map(String)));
+    const pasted = state.linkedin.filter(x => !sent.has(x.urn)).map(x => ({ ...x, source: 'linkedin', created_at: x.posted_at }));
+    const items = [...state.posts.filter(p => p.visibility === 'everyone'), ...state.external.filter(x => !sent.has(String(x.id))), ...pasted]
       .filter(p => fromSource(p, state.source))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
     const out = []; let last = '';
     for (const p of items) {
       const d = dayLabel(p.created_at);
       if (d !== last) { out.push(el('p', { class: 'day-label', text: d })); last = d; }
-      out.push(p.source ? externalCard(p) : feedCard(p, sourceLabel(p)));
+      out.push(p.urn ? linkedinCard(p) : p.source ? externalCard(p) : feedCard(p, sourceLabel(p)));
     }
     $('all-feed').replaceChildren(...out);
     $('all-empty').hidden = items.length > 0;

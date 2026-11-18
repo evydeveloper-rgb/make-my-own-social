@@ -110,6 +110,15 @@
             <p class="muted">Everything <span data-c="name"></span> posts, in one place.</p>
           </div>
           <nav class="chips all-filter" id="all-filter" aria-label="Show posts from"></nav>
+          <form class="card linkedin-add" id="linkedin-add" hidden>
+            <h3>Add a LinkedIn post</h3>
+            <p class="muted small">On LinkedIn, open the ••• menu on a public post, copy its link and paste it here.</p>
+            <div class="add-row">
+              <input id="linkedin-url" type="text" inputmode="url" placeholder="Paste the post link" autocomplete="off" aria-label="LinkedIn post link" required>
+              <button type="submit" id="linkedin-save">Add</button>
+            </div>
+            <p class="form-status" id="linkedin-status" role="status"></p>
+          </form>
           <div id="all-feed"></div>
           <p class="empty" id="all-empty" hidden>Nothing here yet.</p>
           </div>

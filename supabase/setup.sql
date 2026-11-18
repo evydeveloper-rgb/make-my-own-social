@@ -241,6 +241,18 @@ revoke execute on function public.set_composio_key(text) from public, anon;
 grant execute on function public.composio_key() to authenticated;
 grant execute on function public.set_composio_key(text) to authenticated;
 
+-- ---------- LinkedIn posts the owner pasted in ----------
+create table if not exists public.linkedin_posts (
+  id uuid primary key default gen_random_uuid(),
+  urn text not null unique check (urn ~ '^urn:li:(activity|share|ugcPost):[0-9]{10,25}$'),
+  posted_at timestamptz not null,
+  added_at timestamptz not null default now()
+);
+alter table public.linkedin_posts enable row level security;
+create policy "anyone reads linkedin posts" on public.linkedin_posts for select using (true);
+create policy "owner adds linkedin posts" on public.linkedin_posts for insert to authenticated with check (private.is_owner());
+create policy "owner removes linkedin posts" on public.linkedin_posts for delete to authenticated using (private.is_owner());
+
 -- ---------- last step: after you sign up on your site, make yourself the owner ----------
 -- update public.profiles set is_owner = true
 --   where id = (select id from auth.users where email = 'you@example.com');
