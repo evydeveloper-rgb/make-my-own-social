@@ -201,6 +201,46 @@ grant execute on function public.consume_connect_code(text, text) to anon, authe
 -- Where a post was also sent (Instagram, LinkedIn).
 alter table public.posts add column if not exists shared_to jsonb not null default '{}'::jsonb;
 
+-- ---------- connected accounts (Composio) ----------
+-- Nobody can read these tables directly. The owner saves the key through the
+-- functions below; the socials-feed edge function reads it with the service role.
+create table if not exists public.site_secrets (
+  name text primary key, value text not null, updated_at timestamptz not null default now()
+);
+alter table public.site_secrets enable row level security;
+revoke all on public.site_secrets from anon, authenticated;
+
+create table if not exists public.feed_cache (
+  id int primary key default 1, items jsonb not null, fetched_at timestamptz not null default now()
+);
+alter table public.feed_cache enable row level security;
+revoke all on public.feed_cache from anon, authenticated;
+
+create or replace function public.composio_key() returns text
+language plpgsql stable security definer set search_path = public, private as $$
+begin
+  if not private.is_owner() then raise exception 'only the owner can do this'; end if;
+  return (select value from public.site_secrets where name = 'composio_key');
+end $$;
+
+create or replace function public.set_composio_key(p_key text) returns void
+language plpgsql security definer set search_path = public, private as $$
+begin
+  if not private.is_owner() then raise exception 'only the owner can do this'; end if;
+  delete from public.feed_cache;
+  if coalesce(p_key, '') = '' then
+    delete from public.site_secrets where name = 'composio_key';
+  else
+    insert into public.site_secrets (name, value) values ('composio_key', p_key)
+    on conflict (name) do update set value = excluded.value, updated_at = now();
+  end if;
+end $$;
+
+revoke execute on function public.composio_key() from public, anon;
+revoke execute on function public.set_composio_key(text) from public, anon;
+grant execute on function public.composio_key() to authenticated;
+grant execute on function public.set_composio_key(text) to authenticated;
+
 -- ---------- last step: after you sign up on your site, make yourself the owner ----------
 -- update public.profiles set is_owner = true
 --   where id = (select id from auth.users where email = 'you@example.com');

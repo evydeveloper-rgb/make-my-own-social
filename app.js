@@ -751,14 +751,33 @@
     if (!r.ok) throw new Error(j.error || 'That didn’t work. Try again.');
     return j;
   }
+  $('composio-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = $('composio-status'); status.className = 'form-status'; status.textContent = 'Checking your key…';
+    $('composio-save').disabled = true;
+    try {
+      await socialsApi('key', { key: $('composio-key').value.trim() });
+      $('composio-key').value = ''; status.textContent = ''; toast('Composio key saved');
+      await renderSocials();
+    } catch (err) { status.className = 'form-status err'; status.textContent = err.message; }
+    finally { $('composio-save').disabled = false; }
+  });
+  $('composio-remove').addEventListener('click', async () => {
+    if (!confirm('Remove your Composio key? Instagram and LinkedIn stop working here until you add one again.')) return;
+    try { await socialsApi('key', { key: '' }); toast('Key removed'); state.external = []; renderAll(); renderSocials(); } catch (err) { toast(err.message); }
+  });
   async function renderSocials() {
     const m = me();
     $('socials-card').hidden = !(m && m.isOwner);
     if ($('socials-card').hidden) return;
     let info = { configured: false, accounts: {} };
     if (LIVE) { try { info = await socialsApi('status'); } catch (_) {} }
+    $('composio-form').hidden = !LIVE || info.configured || info.fromHost;
+    $('composio-saved').hidden = !info.configured || info.fromHost;
     $('socials-hint').hidden = info.configured;
-    $('socials-hint').textContent = 'Add your Composio key to this site to turn these on.';
+    $('socials-hint').replaceChildren(...(!LIVE ? ['This works once your site is live.'] : info.keyProblem
+      ? ['Composio didn’t accept your saved key. Paste a new one below.']
+      : ['Get a free key at ', el('a', { href: 'https://composio.dev', target: '_blank', rel: 'noopener', text: 'composio.dev' }), ', then paste it here.']));
     const row = (name, note, right) => el('li', null, el('div', null, el('strong', { text: name }), el('small', { text: note })), right);
     $('socials-list').replaceChildren(...SOCIALS.map(a => {
       if (!info.configured) return row(a.name, a.note, el('span', { text: 'Not connected' }));
@@ -896,7 +915,7 @@
     } catch (err) { status.className = 'form-status err'; status.textContent = err.message; }
   });
   $('site-login-make').addEventListener('click', () => {
-    closeSheet(); switchTab('people');
+    closeSheet(); switchTab('you');
     setTimeout(() => $('make-your-own').scrollIntoView({ behavior: 'smooth' }), 50);
   });
 
@@ -1124,7 +1143,7 @@
         setTimeout(() => { $('claude-hint').innerHTML = 'Nothing opened? Install the Claude desktop app from <a href="https://claude.ai/download" target="_blank" rel="noopener">claude.ai/download</a>, sign in, and try again.'; }, 1500);
       });
     }
-    if (location.hash === '#make-your-own') { switchTab('people'); setTimeout(() => $('make-your-own').scrollIntoView(), 80); }
+    if (location.hash === '#make-your-own') { switchTab('you'); setTimeout(() => $('make-your-own').scrollIntoView(), 80); }
   })();
 
   // skill copy

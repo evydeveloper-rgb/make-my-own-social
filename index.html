@@ -151,31 +151,6 @@
             </div>
             <p class="form-status" id="add-person-status" role="status"></p>
           </form>
-
-          <div class="own-hero" id="make-your-own">
-            <p class="eyebrow">make your own</p>
-            <h2 class="display-sm">want one like this?</h2>
-            <p class="lede">Download the skill file and give it to Claude (or any coding agent). It builds your own version — your sections, your colours, your friends — and puts it online for free. With your own social you can log in to <span data-c="name"></span>’s (and your friends’) with one tap, no extra account.</p>
-          </div>
-          <div class="card file-card">
-            <div class="file-icon">.md</div>
-            <div class="file-meta">
-              <strong>make-my-own-social / SKILL.md</strong>
-              <span class="muted">Plain text · works with Claude Code</span>
-            </div>
-          </div>
-          <a class="btn-primary" id="open-in-claude" href="#">Open in Claude</a>
-          <p class="muted small claude-hint" id="claude-hint">Opens a new Claude Code session on your computer with the instructions ready — you just press Enter. Needs the Claude desktop app.</p>
-          <a class="btn-ghost" href="skill.md" download="SKILL.md">Or download SKILL.md</a>
-          <button class="btn-ghost" id="skill-copy" type="button">Copy it instead</button>
-          <div class="card">
-            <h3>How to use it</h3>
-            <ol class="plain-ol">
-              <li>Download the file.</li>
-              <li>In Claude Code, put it at <code>~/.claude/skills/make-my-own-social/SKILL.md</code> — or just paste it into a chat.</li>
-              <li>Say “make me my own social”. It will ask for your name, your sections and a photo.</li>
-            </ol>
-          </div>
         </section>
 
         <!-- you -->
@@ -186,6 +161,12 @@
             <p class="muted small">Connect these to show your posts in all socials and post to them from here.</p>
             <ul class="socials-list" id="socials-list"></ul>
             <p class="muted small" id="socials-hint" hidden></p>
+            <form class="add-row" id="composio-form" hidden>
+              <input id="composio-key" type="password" placeholder="Paste your Composio key" autocomplete="off" aria-label="Composio API key" required>
+              <button type="submit" id="composio-save">Save</button>
+            </form>
+            <p class="form-status" id="composio-status" role="status"></p>
+            <p class="muted small key-saved" id="composio-saved" hidden>Composio key saved. <button type="button" class="text-btn" id="composio-remove">Remove</button></p>
           </div>
           <h3 class="list-title">How this app looks on your phone</h3>
           <p class="muted small look-note">Only you see what you pick here. It doesn’t change anyone else’s app.</p>
@@ -216,6 +197,30 @@
             <h3>Demo mode</h3>
             <p class="muted small">Not connected to a database yet, so accounts, posts and comments only live in this browser. See README.md to go live.</p>
             <label class="switch-row"><span>Preview as <span data-c="name"></span> (can post)</span><input type="checkbox" id="demo-owner"></label>
+          </div>
+          <div class="own-hero" id="make-your-own">
+            <p class="eyebrow">make your own</p>
+            <h2 class="display-sm">want one like this?</h2>
+            <p class="lede">Download the skill file and give it to Claude (or any coding agent). It builds your own version — your sections, your colours, your friends — and puts it online for free. With your own social you can log in to <span data-c="name"></span>’s (and your friends’) with one tap, no extra account.</p>
+          </div>
+          <div class="card file-card">
+            <div class="file-icon">.md</div>
+            <div class="file-meta">
+              <strong>make-my-own-social / SKILL.md</strong>
+              <span class="muted">Plain text · works with Claude Code</span>
+            </div>
+          </div>
+          <a class="btn-primary" id="open-in-claude" href="#">Open in Claude</a>
+          <p class="muted small claude-hint" id="claude-hint">Opens a new Claude Code session on your computer with the instructions ready — you just press Enter. Needs the Claude desktop app.</p>
+          <a class="btn-ghost" href="skill.md" download="SKILL.md">Or download SKILL.md</a>
+          <button class="btn-ghost" id="skill-copy" type="button">Copy it instead</button>
+          <div class="card">
+            <h3>How to use it</h3>
+            <ol class="plain-ol">
+              <li>Download the file.</li>
+              <li>In Claude Code, put it at <code>~/.claude/skills/make-my-own-social/SKILL.md</code> — or just paste it into a chat.</li>
+              <li>Say “make me my own social”. It will ask for your name, your sections and a photo.</li>
+            </ol>
           </div>
           <button class="btn-ghost" id="replay-intro" type="button">Replay the intro</button>
         </section>

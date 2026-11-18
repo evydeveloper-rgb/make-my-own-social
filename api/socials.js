@@ -1,11 +1,13 @@
-// Connected accounts, through Composio. The key stays on the server
-// (COMPOSIO_API_KEY in Vercel). Reading the public feed is open to anyone;
-// connecting, disconnecting and posting need the site owner's login.
+// Connected accounts, through Composio. The owner pastes their key in the app
+// and it is kept in the database, out of reach of visitors (COMPOSIO_API_KEY in
+// Vercel also works). Reading the public feed is open to anyone; everything
+// else needs the site owner's login.
 const crypto = require('crypto');
 const C = require('../config.js');
 const SB_URL = C.supabaseUrl || process.env.SUPABASE_URL;
 const SB_KEY = C.supabaseAnonKey || process.env.SUPABASE_ANON_KEY;
-const KEY = process.env.COMPOSIO_API_KEY;
+const HOST_KEY = process.env.COMPOSIO_API_KEY;
+let KEY = HOST_KEY;
 const API = 'https://backend.composio.dev/api/v3.1';
 const USER = 'owner';                       // one owner per site
 const PLATFORMS = ['instagram', 'linkedin'];
@@ -55,21 +57,26 @@ async function owner(req) {
   return h;
 }
 
+// Runs in the database's edge function, which can read the saved key.
 async function feed() {
-  if (!KEY) return [];
-  const acc = await accounts();
-  if (!acc.instagram) return [];
-  const d = await run('INSTAGRAM_GET_IG_USER_MEDIA', acc.instagram, {
-    ig_user_id: 'me', limit: 25,
-    fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
-  });
-  const list = [d.data, inner(d).data, d.items].find(Array.isArray) || [];
-  return list.filter(m => m.permalink && m.timestamp).map(m => ({
-    id: m.id, source: 'instagram', caption: m.caption || '',
-    imageUrl: m.media_type === 'VIDEO' ? m.thumbnail_url || null : m.media_url || null,
-    url: m.permalink, created_at: new Date(m.timestamp).toISOString(),
-    likeCount: m.like_count || 0, commentCount: m.comments_count || 0,
-  }));
+  const r = await fetch(`${SB_URL}/functions/v1/socials-feed`, { method: 'POST', headers: { Authorization: 'Bearer ' + SB_KEY, apikey: SB_KEY } });
+  if (!r.ok) throw new Error('feed ' + r.status);
+  return (await r.json()).items || [];
+}
+
+async function rpc(h, name, args) {
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
+  if (!r.ok) throw new HttpError(502, 'Could not reach the database.');
+  return r.status === 204 ? null : r.json();
+}
+
+async function saveKey(h, key) {
+  if (key === '') return rpc(h, 'set_composio_key', { p_key: '' });
+  if (typeof key !== 'string' || !/^[\w-]{10,200}$/.test(key)) throw new HttpError(400, 'That doesn’t look like a Composio key.');
+  KEY = key;
+  try { await composio(`/connected_accounts?user_ids=${USER}`); }
+  catch (_) { throw new HttpError(400, 'Composio didn’t accept that key.'); }
+  return rpc(h, 'set_composio_key', { p_key: key });
 }
 
 async function connect(platform, origin) {
@@ -158,7 +165,7 @@ module.exports = async (req, res) => {
   if (action === 'feed') {
     try {
       const items = await feed();
-      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600');
+      res.setHeader('Cache-Control', items.length ? 'public, s-maxage=300, stale-while-revalidate=900' : 'public, s-maxage=60');
       return send(200, { items });
     } catch (_) {
       res.setHeader('Cache-Control', 'public, s-maxage=60');
@@ -169,14 +176,18 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     const h = await owner(req);
+    KEY = HOST_KEY || await rpc(h, 'composio_key');
     if (action === 'status') {
       if (!KEY) return send(200, { configured: false, accounts: {} });
-      const acc = await accounts();
-      return send(200, { configured: true, accounts: Object.fromEntries(PLATFORMS.map(p => [p, !!acc[p]])) });
+      try {
+        const acc = await accounts();
+        return send(200, { configured: true, fromHost: !!HOST_KEY, accounts: Object.fromEntries(PLATFORMS.map(p => [p, !!acc[p]])) });
+      } catch (_) { return send(200, { configured: false, keyProblem: true, accounts: {} }); }
     }
     if (req.method !== 'POST') throw new HttpError(405, 'Use POST.');
-    if (!KEY) throw new HttpError(400, 'Add COMPOSIO_API_KEY to this site first.');
     const body = req.body || {};
+    if (action === 'key') { await saveKey(h, body.key); return send(200, { ok: true }); }
+    if (!KEY) throw new HttpError(400, 'Add your Composio key first.');
     if (action === 'post') return send(200, await share(h, body, origin));
     if (!PLATFORMS.includes(body.platform)) throw new HttpError(400, 'Unknown account.');
     if (action === 'connect') return send(200, { url: await connect(body.platform, origin) });

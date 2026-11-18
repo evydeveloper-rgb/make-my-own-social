@@ -67,7 +67,8 @@ Prefer to do it by hand? Give Claude [`skill.md`](skill.md) and say
    and put your photos in `selfies/`. Vercel redeploys on every change.
    Run `python tools/make-icons.py` if you can, so Android gets your icons.
 4. For "log in with your own social": deploy `supabase/functions/site-login`
-   and set its secret `SITE_ORIGIN` to your site's address.
+   and set its secret `SITE_ORIGIN` to your site's address. Deploy
+   `supabase/functions/socials-feed` too, so your Instagram posts can show.
 5. Supabase → Authentication → URL configuration → Site URL = your address.
 6. Sign up on your site, then run the last line of `setup.sql` with your email
    to make yourself the owner.

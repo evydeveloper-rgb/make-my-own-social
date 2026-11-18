@@ -282,6 +282,10 @@ code { font-size: .85em; background: var(--sunken); padding: 1px 5px; border-rad
 .socials-list small { font-size: .76rem; color: var(--ink-3); }
 .link-btn { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--accent); border-radius: 99px; padding: 6px 13px; font-size: .8rem; font-weight: 700; }
 #socials-hint { margin: 10px 0 0; }
+#socials-hint a { color: var(--accent); font-weight: 600; }
+#composio-status:empty { display: none; }
+.key-saved { margin: 10px 0 0; }
+.text-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 700; }
 .look-note { margin: -6px 18px 12px; }
 a.feed-card { display: block; color: inherit; text-decoration: none; }
 .feed-card .fc-head .fc-source { margin-left: auto; flex: none; padding: 3px 9px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: .7rem; font-weight: 700; }
@@ -293,8 +297,8 @@ a.feed-card { display: block; color: inherit; text-decoration: none; }
 .file-icon { width: 48px; height: 56px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
 .file-meta strong { display: block; font-size: .9rem; word-break: break-all; }
 .file-meta span { font-size: .8rem; }
-#tab-people > .btn-primary, #tab-people > .btn-ghost { width: auto; margin-left: 16px; margin-right: 16px; }
-#tab-people > .btn-ghost { margin-bottom: 12px; }
+#tab-you > .btn-primary, #tab-you > .btn-ghost { width: auto; margin-left: 16px; margin-right: 16px; }
+#tab-you > .btn-ghost { display: block; width: calc(100% - 32px); text-align: center; margin-bottom: 12px; }
 .plain-ol { margin: 0; padding-left: 20px; }
 .plain-ol li { margin-bottom: 6px; }
 
