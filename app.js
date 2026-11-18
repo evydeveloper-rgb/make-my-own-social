@@ -343,7 +343,7 @@
   // =====================================================================
   //  STATE
   // =====================================================================
-  const state = { tab: 'all', section: 'all', posts: [], external: [], openPost: null, authMode: 'signup', after: null };
+  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], openPost: null, authMode: 'signup', after: null };
   const me = () => db.session();
 
   // ---------- carrying choices onto the home screen ----------
@@ -681,7 +681,7 @@
       el('div', null, el('strong', { text: x.role }), el('span', { text: `${x.org} · ${x.when}` }), x.note ? el('span', { text: x.note }) : null))));
     $('section-chips').replaceChildren(...[{ id: 'all', label: 'All' }, ...SECTIONS.filter(s => GRID_SECTIONS.includes(s.id))]
       .map(s => el('button', { type: 'button', class: 'chip' + (state.section === s.id ? ' on' : ''), 'data-sec': s.id, text: s.label,
-        onclick: () => { state.section = s.id; document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.sec === s.id)); renderHome(); } })));
+        onclick: () => { state.section = s.id; document.querySelectorAll('#section-chips .chip').forEach(c => c.classList.toggle('on', c.dataset.sec === s.id)); renderHome(); } })));
     $('compose-section').replaceChildren(...SECTIONS.map((s, i) => el('button', { type: 'button', 'data-sec': s.id, class: i === 0 ? 'on' : '', text: s.label })));
   }
 
@@ -723,6 +723,28 @@
     { id: 'instagram', name: 'Instagram', note: 'Needs a Creator or Business account' },
     { id: 'linkedin', name: 'LinkedIn', note: 'Posts you make from here' },
   ];
+  const SOURCES = [
+    { id: 'all', label: 'All' }, { id: 'mine', label: 'My social' },
+    { id: 'instagram', label: 'Instagram' }, { id: 'linkedin', label: 'LinkedIn' }, { id: 'x', label: 'X' },
+  ];
+  // A post sent to Instagram from here counts as both "My social" and "Instagram".
+  function fromSource(p, source) {
+    if (source === 'all') return true;
+    if (source === 'mine') return !p.source;
+    return p.source === source || !!(p.shared_to || {})[source];
+  }
+  $('all-filter').replaceChildren(...SOURCES.map(f => el('button', {
+    type: 'button', class: 'chip' + (f.id === state.source ? ' on' : ''), 'data-source': f.id, text: f.label,
+    'aria-pressed': String(f.id === state.source),
+    onclick: () => {
+      state.source = f.id;
+      document.querySelectorAll('#all-filter .chip').forEach(c => {
+        const on = c.dataset.source === f.id;
+        c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on));
+      });
+      renderAll();
+    },
+  })));
   const socialName = (id) => (SOCIALS.find(x => x.id === id) || {}).name || id;
   function sourceLabel(p) {
     const also = Object.keys(p.shared_to || {}).map(socialName);
@@ -801,6 +823,7 @@
     // A post sent to Instagram from here shows once, not twice.
     const sent = new Set(state.posts.map(p => String((p.shared_to || {}).instagram)));
     const items = [...state.posts.filter(p => p.visibility === 'everyone'), ...state.external.filter(x => !sent.has(String(x.id)))]
+      .filter(p => fromSource(p, state.source))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
     const out = []; let last = '';
     for (const p of items) {
@@ -810,6 +833,8 @@
     }
     $('all-feed').replaceChildren(...out);
     $('all-empty').hidden = items.length > 0;
+    $('all-empty').textContent = state.source === 'all' ? 'Nothing here yet.'
+      : `Nothing from ${SOURCES.find(f => f.id === state.source).label} yet.`;
   }
 
   async function renderYou() {

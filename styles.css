@@ -275,6 +275,7 @@ code { font-size: .85em; background: var(--sunken); padding: 1px 5px; border-rad
 .all-head { padding: 18px 18px 6px; }
 .all-head h2 { margin: 0; font: 600 1.4rem/1.2 var(--display); }
 .all-head p { margin: 3px 0 0; font-size: .88rem; }
+.all-filter { position: sticky; top: 0; z-index: 3; padding: 12px 16px 8px; background: var(--bg); }
 .socials-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .socials-list li { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: .9rem; }
 .socials-list li > span { font-size: .8rem; color: var(--ink-3); flex: none; }
@@ -465,6 +466,7 @@ a.btn-ghost { text-align: center; text-decoration: none; }
   #tab-all:not([hidden]) { display: grid; grid-template-columns: minmax(0, 640px) 300px; gap: 44px; justify-content: center; align-items: start; }
   .all-head { padding: 36px 0 2px; }
   .all-head h2 { font-size: 2rem; }
+  .all-filter { padding: 16px 0 8px; }
   .desk-rail { display: block; position: sticky; top: 36px; margin-top: 36px; }
   .rail-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; padding: 0 18px 18px; }
   .rail-cover { height: 92px; margin: 0 -18px; background: var(--accent-soft); }
