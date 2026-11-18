@@ -1,6 +1,6 @@
 // Network first, cache as a fallback, so the home-screen app still opens offline
 // but never gets stuck on an old version.
-const CACHE = 'my-social-v8';
+const CACHE = 'my-social-v9';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {

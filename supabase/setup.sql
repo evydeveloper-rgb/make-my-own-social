@@ -227,7 +227,7 @@ create or replace function public.set_composio_key(p_key text) returns void
 language plpgsql security definer set search_path = public, private as $$
 begin
   if not private.is_owner() then raise exception 'only the owner can do this'; end if;
-  delete from public.feed_cache;
+  delete from public.feed_cache where id = 1;   -- the API refuses a delete with no WHERE
   if coalesce(p_key, '') = '' then
     delete from public.site_secrets where name = 'composio_key';
   else

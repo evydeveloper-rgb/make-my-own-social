@@ -1002,6 +1002,7 @@
     if (!openSheet) return;
     $(openSheet).hidden = true; $('backdrop').hidden = true; openSheet = null; state.openPost = null;
   }
+  $('settings-open').addEventListener('click', () => showSheet('settings-sheet'));
   $('backdrop').addEventListener('click', closeSheet);
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheet));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
