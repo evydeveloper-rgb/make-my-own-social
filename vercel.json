@@ -1,9 +1,20 @@
 {
   "rewrites": [
-    { "source": "/social.json", "destination": "/api/social" },
-    { "source": "/make", "destination": "/make.html" }
+    {
+      "source": "/social.json",
+      "destination": "/api/social"
+    },
+    {
+      "source": "/make",
+      "destination": "/make.html"
+    }
   ],
   "functions": {
-    "api/manifest.js": { "includeFiles": "icons/choices/**" }
+    "api/manifest.js": {
+      "includeFiles": "icons/choices/**"
+    },
+    "api/socials.js": {
+      "maxDuration": 60
+    }
   }
 }

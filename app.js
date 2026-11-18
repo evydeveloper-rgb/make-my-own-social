@@ -156,8 +156,10 @@
     async createPost({ section, visibility, caption, blob }) {
       const d = this.load();
       const image = blob ? await blobToDataUrl(await shrinkImage(blob, 1080, 0.78)) : null;
-      d.posts.push({ id: uid(), section, visibility, caption, image, created_at: new Date().toISOString() });
+      const id = uid();
+      d.posts.push({ id, section, visibility, caption, image, created_at: new Date().toISOString() });
       this.save(d);
+      return id;
     },
     async deletePost(id) {
       const d = this.load();
@@ -216,6 +218,7 @@
       };
     },
     session() { return this.me; },
+    async token() { const { data: { session } } = await this.sb.auth.getSession(); return session ? session.access_token : ''; },
     async signUp(name, email, password) {
       const { data, error } = await this.sb.auth.signUp({ email, password, options: { data: { display_name: name }, emailRedirectTo: new URL('./', location.href).href } });
       if (error) throw error;
@@ -230,7 +233,7 @@
     async signOut() { await this.sb.auth.signOut(); this.me = null; },
     async posts() {
       const { data, error } = await this.sb.from('posts')
-        .select('id, section, visibility, caption, image_path, created_at, likes(count), comments(count)')
+        .select('id, section, visibility, caption, image_path, shared_to, created_at, likes(count), comments(count)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       // "posts/..." are photos shipped with the site itself; the rest live in storage.
@@ -265,8 +268,9 @@
         const { error } = await this.sb.storage.from('media').upload(image_path, small, { contentType: 'image/jpeg' });
         if (error) throw error;
       }
-      const { error } = await this.sb.from('posts').insert({ section, visibility, caption, image_path });
+      const { data, error } = await this.sb.from('posts').insert({ section, visibility, caption, image_path }).select('id').single();
       if (error) throw error;
+      return data.id;
     },
     async deletePost(id) {
       const { data } = await this.sb.from('posts').select('image_path').eq('id', id).maybeSingle();
@@ -339,7 +343,7 @@
   // =====================================================================
   //  STATE
   // =====================================================================
-  const state = { tab: 'all', section: 'all', posts: [], openPost: null, authMode: 'signup', after: null };
+  const state = { tab: 'all', section: 'all', posts: [], external: [], openPost: null, authMode: 'signup', after: null };
   const me = () => db.session();
 
   // ---------- carrying choices onto the home screen ----------
@@ -653,6 +657,7 @@
       state.posts = [];
     }
     renderAll(); renderHome(); renderWork();
+    loadExternal();
     if (state.tab === 'you') renderYou();
     if (state.tab === 'people') renderPeople();
   }
@@ -709,19 +714,75 @@
     $('work-empty').hidden = items.length > 0;
   }
 
-  // Every post, newest first. Connected accounts join this list later.
-  const OTHER_SOCIALS = ['Instagram', 'LinkedIn', 'X'];
-  function renderAll() {
+  // ---------- connected accounts ----------
+  const SOCIALS = [
+    { id: 'instagram', name: 'Instagram', note: 'Needs a Creator or Business account' },
+    { id: 'linkedin', name: 'LinkedIn', note: 'Posts you make from here' },
+  ];
+  const socialName = (id) => (SOCIALS.find(x => x.id === id) || {}).name || id;
+  function sourceLabel(p) {
+    const also = Object.keys(p.shared_to || {}).map(socialName);
+    return also.length ? also.join(' · ') : 'My social';
+  }
+  function externalCard(x) {
+    return el('a', { class: 'feed-card ext-card', href: x.url, target: '_blank', rel: 'noopener' },
+      el('div', { class: 'fc-head' }, el('img', { src: C.ownerPhoto, alt: '' }),
+        el('div', null, el('strong', { text: C.ownerName }), el('span', { text: ago(x.created_at) })),
+        el('span', { class: 'fc-source', text: socialName(x.source) })),
+      x.caption ? el('p', { class: 'fc-text', text: x.caption }) : null,
+      x.imageUrl ? el('img', { class: 'fc-img', src: x.imageUrl, alt: '', loading: 'lazy' }) : null,
+      el('div', { class: 'fc-foot' }, el('span', { text: `♥ ${x.likeCount}` }), el('span', { text: `${x.commentCount} comment${x.commentCount === 1 ? '' : 's'}` })));
+  }
+  async function loadExternal() {
+    if (!LIVE) return;
+    try {
+      const r = await fetch('/api/socials?action=feed');
+      state.external = r.ok ? (await r.json()).items || [] : [];
+      renderAll();
+    } catch (_) { /* the timeline still shows this site's own posts */ }
+  }
+  async function socialsApi(action, body) {
+    const r = await fetch('/api/socials?action=' + action, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: 'Bearer ' + await db.token(), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'That didn’t work. Try again.');
+    return j;
+  }
+  async function renderSocials() {
     const m = me();
     $('socials-card').hidden = !(m && m.isOwner);
-    $('socials-list').replaceChildren(...OTHER_SOCIALS.map(name =>
-      el('li', null, el('strong', { text: name }), el('span', { text: 'Not connected' }))));
-    const items = state.posts.filter(p => p.visibility === 'everyone');
+    if ($('socials-card').hidden) return;
+    let info = { configured: false, accounts: {} };
+    if (LIVE) { try { info = await socialsApi('status'); } catch (_) {} }
+    $('socials-hint').hidden = info.configured;
+    $('socials-hint').textContent = 'Add your Composio key to this site to turn these on.';
+    const row = (name, note, right) => el('li', null, el('div', null, el('strong', { text: name }), el('small', { text: note })), right);
+    $('socials-list').replaceChildren(...SOCIALS.map(a => {
+      if (!info.configured) return row(a.name, a.note, el('span', { text: 'Not connected' }));
+      if (info.accounts[a.id]) return row(a.name, 'Connected', el('button', { type: 'button', class: 'link-btn', text: 'Disconnect', onclick: async () => {
+        if (!confirm(`Disconnect ${a.name}?`)) return;
+        try { await socialsApi('disconnect', { platform: a.id }); toast(`${a.name} disconnected`); renderSocials(); loadExternal(); } catch (err) { toast(err.message); }
+      } }));
+      return row(a.name, a.note, el('button', { type: 'button', class: 'link-btn', text: 'Connect', onclick: async (e) => {
+        e.target.disabled = true;
+        try { location.href = (await socialsApi('connect', { platform: a.id })).url; } catch (err) { e.target.disabled = false; toast(err.message); }
+      } }));
+    }), row('X', 'Needs your own X developer app', el('span', { text: 'Not available yet' })));
+  }
+
+  function renderAll() {
+    // A post sent to Instagram from here shows once, not twice.
+    const sent = new Set(state.posts.map(p => String((p.shared_to || {}).instagram)));
+    const items = [...state.posts.filter(p => p.visibility === 'everyone'), ...state.external.filter(x => !sent.has(String(x.id)))]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
     const out = []; let last = '';
     for (const p of items) {
       const d = dayLabel(p.created_at);
       if (d !== last) { out.push(el('p', { class: 'day-label', text: d })); last = d; }
-      out.push(feedCard(p, 'My social'));
+      out.push(p.source ? externalCard(p) : feedCard(p, sourceLabel(p)));
     }
     $('all-feed').replaceChildren(...out);
     $('all-empty').hidden = items.length > 0;
@@ -736,6 +797,7 @@
       : [el('span', { class: 'initial', text: '?' }),
          el('div', null, el('strong', { text: 'Not logged in' }), el('span', { text: 'Log in to comment.' })),
          el('button', { type: 'button', text: 'Log in', onclick: () => openAuth('signup') })])));
+    renderSocials();
     $('demo-card').hidden = LIVE;
     $('demo-owner').checked = !LIVE && !!(m && m.isOwner);
     const card = $('members-card');
@@ -990,7 +1052,13 @@
   $('compose-open').addEventListener('click', () => {
     composeBlob = null; $('compose-preview').hidden = true; $('compose-drop-text').hidden = false;
     $('compose-caption').value = ''; $('compose-status').textContent = '';
+    $('compose-share-wrap').hidden = true;
     showSheet('compose-sheet');
+    if (LIVE) socialsApi('status').then((info) => {
+      const on = SOCIALS.filter(a => info.accounts[a.id]);
+      $('compose-share').replaceChildren(...on.map(a => el('button', { type: 'button', 'data-share': a.id, text: a.name })));
+      $('compose-share-wrap').hidden = !on.length;
+    }).catch(() => {});
   });
   $('compose-file').addEventListener('change', (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -1001,16 +1069,33 @@
     const b = e.target.closest('button'); if (!b) return;
     $('compose-section').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
   });
+  $('compose-share').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (b) b.classList.toggle('on');
+  });
   $('compose-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const caption = $('compose-caption').value.trim();
     const section = ($('compose-section').querySelector('.on') || {}).dataset.sec || 'daily';
     const status = $('compose-status'); status.className = 'form-status';
     if (!caption && !composeBlob) { status.className = 'form-status err'; status.textContent = 'Add a photo or write something.'; return; }
+    const targets = [...$('compose-share').querySelectorAll('button.on')].map(b => b.dataset.share);
+    if (targets.includes('instagram') && !composeBlob) { status.className = 'form-status err'; status.textContent = 'Instagram needs a photo.'; return; }
+    if (targets.includes('linkedin') && !caption) { status.className = 'form-status err'; status.textContent = 'LinkedIn needs some text.'; return; }
     status.textContent = 'Posting…'; $('compose-submit').disabled = true;
     try {
-      await db.createPost({ section, visibility: 'everyone', caption, blob: composeBlob });
-      closeSheet(); toast('Posted'); await refresh();
+      const postId = await db.createPost({ section, visibility: 'everyone', caption, blob: composeBlob });
+      let note = 'Posted';
+      if (targets.length) {
+        status.textContent = `Posting to ${targets.map(socialName).join(' and ')}…`;
+        try {
+          const { results } = await socialsApi('post', { postId, targets });
+          const failed = targets.filter(t => !results[t] || !results[t].ok);
+          note = failed.length
+            ? `Posted here, but ${failed.map(t => `${socialName(t)} failed: ${(results[t] || {}).error || 'no reply'}`).join('. ')}`
+            : `Posted to ${targets.map(socialName).join(' and ')}`;
+        } catch (err) { note = `Posted here, but sharing failed: ${err.message}`; }
+      }
+      closeSheet(); toast(note); await refresh();
     } catch (err) { status.className = 'form-status err'; status.textContent = err.message; }
     finally { $('compose-submit').disabled = false; }
   });
@@ -1057,6 +1142,12 @@
   async function boot() {
     // Read login hand-off params first: everything below rewrites the address.
     const arrival = takeParams('site_code', 'site', 'connect_to');
+    // Back from connecting an account: land on the card that shows the result.
+    const [linked, linkStatus] = takeParams('connected', 'status', 'connected_account_id', 'appName');
+    if (linked) {
+      state.tab = 'you'; store.set('es-onboarded', true);
+      if (linkStatus) toast(linkStatus === 'success' ? `${socialName(linked)} connected` : `Couldn’t connect ${socialName(linked)}`);
+    }
     readChoicesFromUrl();
     if (isHomeScreenApp()) store.set('es-onboarded', true);
     buildThemeGrid($('theme-grid-2'));

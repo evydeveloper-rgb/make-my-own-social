@@ -198,6 +198,9 @@ revoke execute on function public.consume_connect_code(text, text) from public;
 grant execute on function public.consume_connect_code(text, text) to anon, authenticated;
 
 
+-- Where a post was also sent (Instagram, LinkedIn).
+alter table public.posts add column if not exists shared_to jsonb not null default '{}'::jsonb;
+
 -- ---------- last step: after you sign up on your site, make yourself the owner ----------
 -- update public.profiles set is_owner = true
 --   where id = (select id from auth.users where email = 'you@example.com');

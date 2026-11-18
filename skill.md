@@ -68,6 +68,7 @@ Mention that free Supabase projects pause after about a week with no visits.
 - Their link, and how to put it on their phone's home screen.
 - Posting: log in → **+** → photo, caption, section.
 - Members: the **you** tab lists everyone who signs up.
+- Instagram and LinkedIn (optional): make a free account at composio.dev, copy its API key, and add it to Vercel as the environment variable `COMPOSIO_API_KEY`, then redeploy. The owner connects each account from the **you** tab. Instagram needs a Creator or Business account.
 - People tab: add friends' socials by address. On anyone's social they can now
   tap **Log in → Have your own social?** and type their address — no new
   account needed.

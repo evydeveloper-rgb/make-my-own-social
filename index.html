@@ -90,11 +90,6 @@
             <h2>All socials</h2>
             <p class="muted">Everything <span data-c="name"></span> posts, in one place.</p>
           </div>
-          <div class="card" id="socials-card" hidden>
-            <h3>Your other accounts</h3>
-            <p class="muted small">Their posts will join this timeline once they’re connected.</p>
-            <ul class="socials-list" id="socials-list"></ul>
-          </div>
           <div id="all-feed"></div>
           <p class="empty" id="all-empty" hidden>Nothing here yet.</p>
         </section>
@@ -186,6 +181,14 @@
         <!-- you -->
         <section class="tab" id="tab-you" hidden>
           <div id="you-account"></div>
+          <div class="card" id="socials-card" hidden>
+            <h3>Your accounts</h3>
+            <p class="muted small">Connect these to show your posts in all socials and post to them from here.</p>
+            <ul class="socials-list" id="socials-list"></ul>
+            <p class="muted small" id="socials-hint" hidden></p>
+          </div>
+          <h3 class="list-title">How this app looks on your phone</h3>
+          <p class="muted small look-note">Only you see what you pick here. It doesn’t change anyone else’s app.</p>
           <div class="card">
             <h3>Colours</h3>
             <div class="theme-grid" id="theme-grid-2"></div>
@@ -312,6 +315,10 @@
           <label>Caption<textarea id="compose-caption" rows="4" maxlength="4000"></textarea></label>
           <p class="label">Where</p>
           <div class="seg wrap" id="compose-section"></div>
+          <div id="compose-share-wrap" hidden>
+            <p class="label">Also post to</p>
+            <div class="seg wrap" id="compose-share"></div>
+          </div>
           <button class="btn-primary" type="submit" id="compose-submit">Share</button>
           <p class="form-status" id="compose-status" role="status"></p>
         </form>

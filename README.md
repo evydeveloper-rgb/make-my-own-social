@@ -37,7 +37,8 @@ Make yours, add your friends, and you're part of the network.
 
 ## What you get
 
-- 🌐 **All socials** — one timeline of everything you post
+- 🌐 **All socials** — one timeline of your posts, with your Instagram connected through [Composio](https://composio.dev)
+- 📣 **Post everywhere** — send a post to Instagram and LinkedIn from the app
 - 📸 **My social** — a photo grid you sort into your own sections (Evy's are Daily life, AI, Acting)
 - 💼 **Work** — a simple LinkedIn-style page: headline, about, experience, updates
 - 💬 **Comments & likes** — friends make an account, or log in with their own social
