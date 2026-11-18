@@ -32,14 +32,14 @@ app, lives on your friends' home screens, and connects to everyone else's.
 Make yours, add your friends, and you're part of the network.
 
 <p align="center">
-  <img src="assets/screens.png" alt="Intro, icon picker, photo grid, comments, log in with your own social, work page" width="100%">
+  <img src="assets/screens.png" alt="Intro, icon picker, all socials timeline, my social grid, comments, log in with your own social, work page" width="100%">
 </p>
 
 ## What you get
 
-- 📸 **Life** — a photo grid you sort into your own sections (Evy's are Daily life, AI, Acting)
+- 🌐 **All socials** — one timeline of everything you post
+- 📸 **My social** — a photo grid you sort into your own sections (Evy's are Daily life, AI, Acting)
 - 💼 **Work** — a simple LinkedIn-style page: headline, about, experience, updates
-- 💛 **Close** — a day-to-day page only the friends you switch on can see
 - 💬 **Comments & likes** — friends make an account, or log in with their own social
 - 👋 **People** — cards for your friends' socials; tap one to visit
 - 📱 **On their home screen** — a three-step intro with an icon picker, like a real app

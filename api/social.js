@@ -1,6 +1,6 @@
 // /social.json — this site's public "business card". Other people's socials
 // read it to show a card for this person in their People tab. Only posts
-// marked "everyone" are listed; close-friends posts never leave the site.
+// marked "everyone" are listed.
 const C = require('../config.js');
 const SB_URL = C.supabaseUrl || process.env.SUPABASE_URL;
 const SB_KEY = C.supabaseAnonKey || process.env.SUPABASE_ANON_KEY;

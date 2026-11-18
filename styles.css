@@ -271,14 +271,14 @@ code { font-size: .85em; background: var(--sunken); padding: 1px 5px; border-rad
 .feed-card .fc-foot button { background: none; border: 0; padding: 0; color: inherit; font-weight: 600; }
 .feed-card { cursor: pointer; }
 
-/* ---------- friends ---------- */
-.friends-head { display: flex; gap: 12px; align-items: center; padding: 18px; }
-.friends-head h2 { margin: 0; font-size: 1.1rem; }
-.friends-head p { margin: 0; font-size: .86rem; }
-.ring-dot { flex: none; width: 44px; height: 44px; border-radius: 50%; background: conic-gradient(var(--accent), #e8b04a, var(--accent)); padding: 3px; position: relative; }
-.ring-dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--bg) url("selfies/evy-1.jpg") center/cover; border: 2px solid var(--bg); }
-.gate { margin: 0 16px; padding: 22px; text-align: center; background: var(--surface); border: 1px dashed var(--ink-3); border-radius: var(--radius); }
-.gate p { margin: 0 0 4px; }
+/* ---------- all socials ---------- */
+.all-head { padding: 18px 18px 6px; }
+.all-head h2 { margin: 0; font: 600 1.4rem/1.2 var(--display); }
+.all-head p { margin: 3px 0 0; font-size: .88rem; }
+.socials-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.socials-list li { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: .9rem; }
+.socials-list span { font-size: .8rem; color: var(--ink-3); }
+.feed-card .fc-head .fc-source { margin-left: auto; flex: none; padding: 3px 9px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: .7rem; font-weight: 700; }
 .day-label { margin: 18px 18px 8px; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 
 /* ---------- make your own ---------- */

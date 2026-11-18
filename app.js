@@ -108,7 +108,7 @@
       const h = (n) => new Date(Date.now() - n * 3600e3).toISOString();
       const p = (section, visibility, caption, image, hoursAgo) => ({ id: uid(), section, visibility, caption, image, created_at: h(hoursAgo) });
       return {
-        users: [{ id: 'demo-friend', name: 'Sample friend', email: 'friend@example.com', is_close_friend: true, created_at: h(200) }],
+        users: [{ id: 'demo-friend', name: 'Sample friend', email: 'friend@example.com', created_at: h(200) }],
         me: null, owner: false,
         posts: [
           p('daily', 'everyone', 'Sample post — this is what a photo in “Daily life” looks like. Replace it with your own.', C.selfies[2] || C.ownerPhoto, 3),
@@ -116,22 +116,20 @@
           p('acting', 'everyone', 'Sample post — headshots, set photos, audition notes go in “Acting”.', C.selfies[1] || C.ownerPhoto, 50),
           p('daily', 'everyone', 'Sample post — another daily one.', C.selfies[0] || C.ownerPhoto, 80),
           p('work', 'everyone', 'Sample work update — longer posts read like a LinkedIn update here. Shipped a thing, learned a thing, hiring, etc.', null, 30),
-          p('daily', 'close', 'Sample close-friends update — only people you switch on can see this.', null, 2),
-          p('daily', 'close', 'Another one from yesterday, the kind of thing you’d put in a close-friends story.', C.selfies[0] || C.ownerPhoto, 26),
         ],
         comments: [], likes: [],
       };
     },
     session() {
       const d = this.load();
-      if (d.owner) return { id: 'owner', name: C.ownerName, isOwner: true, isClose: true };
+      if (d.owner) return { id: 'owner', name: C.ownerName, isOwner: true };
       const u = d.users.find(x => x.id === d.me);
-      return u ? { id: u.id, name: u.name, email: u.email, isOwner: false, isClose: !!u.is_close_friend } : null;
+      return u ? { id: u.id, name: u.name, email: u.email, isOwner: false } : null;
     },
     async signUp(name, email) {
       const d = this.load();
       if (d.users.some(u => u.email.toLowerCase() === email.toLowerCase())) throw new Error('That email already has an account — log in instead.');
-      const u = { id: uid(), name, email, is_close_friend: false, created_at: new Date().toISOString() };
+      const u = { id: uid(), name, email, created_at: new Date().toISOString() };
       d.users.push(u); d.me = u.id; d.owner = false; this.save(d);
     },
     async signIn(email) {
@@ -145,7 +143,7 @@
     async posts() {
       const d = this.load(), me = this.session();
       return d.posts
-        .filter(p => p.visibility === 'everyone' || (me && me.isClose))
+        .filter(p => p.visibility === 'everyone')
         .sort((a, b) => b.created_at.localeCompare(a.created_at))
         .map(p => ({
           ...p, imageUrl: p.image,
@@ -185,10 +183,7 @@
       this.save(d);
     },
     async members() {
-      return this.load().users.map(u => ({ id: u.id, name: u.name, email: u.email, isClose: !!u.is_close_friend }));
-    },
-    async setCloseFriend(id, on) {
-      const d = this.load(); const u = d.users.find(x => x.id === id); if (u) u.is_close_friend = on; this.save(d);
+      return this.load().users.map(u => ({ id: u.id, name: u.name, email: u.email }));
     },
     async people() { return this.load().people || []; },
     async addPerson(url) { const d = this.load(); d.people = [...new Set([...(d.people || []), url])]; this.save(d); },
@@ -217,7 +212,7 @@
         id: session.user.id, email: session.user.email,
         name: (prof && prof.display_name) || session.user.email,
         site: (prof && prof.site_url) || null,
-        isOwner: !!(prof && prof.is_owner), isClose: !!(prof && (prof.is_close_friend || prof.is_owner)),
+        isOwner: !!(prof && prof.is_owner),
       };
     },
     session() { return this.me; },
@@ -302,13 +297,9 @@
       if (error) throw error;
     },
     async members() {
-      const { data, error } = await this.sb.from('profiles').select('id, display_name, site_url, is_close_friend, created_at').eq('is_owner', false).order('created_at', { ascending: false });
+      const { data, error } = await this.sb.from('profiles').select('id, display_name, site_url, created_at').eq('is_owner', false).order('created_at', { ascending: false });
       if (error) throw error;
-      return data.map(p => ({ id: p.id, name: p.display_name, site: p.site_url, isClose: p.is_close_friend }));
-    },
-    async setCloseFriend(id, on) {
-      const { error } = await this.sb.from('profiles').update({ is_close_friend: on }).eq('id', id);
-      if (error) throw error;
+      return data.map(p => ({ id: p.id, name: p.display_name, site: p.site_url }));
     },
     async people() {
       const { data, error } = await this.sb.from('people').select('url').order('added_at');
@@ -348,7 +339,7 @@
   // =====================================================================
   //  STATE
   // =====================================================================
-  const state = { tab: 'home', section: 'all', posts: [], openPost: null, authMode: 'signup', after: null };
+  const state = { tab: 'all', section: 'all', posts: [], openPost: null, authMode: 'signup', after: null };
   const me = () => db.session();
 
   // ---------- carrying choices onto the home screen ----------
@@ -661,7 +652,7 @@
       toast('Could not load posts: ' + err.message);
       state.posts = [];
     }
-    renderHome(); renderWork(); renderFriends();
+    renderAll(); renderHome(); renderWork();
     if (state.tab === 'you') renderYou();
     if (state.tab === 'people') renderPeople();
   }
@@ -702,10 +693,11 @@
     $('grid-empty').hidden = shown.length > 0;
   }
 
-  function feedCard(p) {
+  function feedCard(p, source) {
     return el('article', { class: 'feed-card', onclick: () => openPost(p.id) },
       el('div', { class: 'fc-head' }, el('img', { src: C.ownerPhoto, alt: '' }),
-        el('div', null, el('strong', { text: C.ownerName }), el('span', { text: ago(p.created_at) + (p.visibility === 'close' ? ' · close friends' : '') }))),
+        el('div', null, el('strong', { text: C.ownerName }), el('span', { text: ago(p.created_at) })),
+        source ? el('span', { class: 'fc-source', text: source }) : null),
       p.caption ? el('p', { class: 'fc-text', text: p.caption }) : null,
       p.imageUrl ? el('img', { class: 'fc-img', src: p.imageUrl, alt: '', loading: 'lazy' }) : null,
       el('div', { class: 'fc-foot' }, el('span', { text: `♥ ${p.likeCount}` }), el('span', { text: `${p.commentCount} comment${p.commentCount === 1 ? '' : 's'}` })));
@@ -713,38 +705,33 @@
 
   function renderWork() {
     const items = state.posts.filter(p => p.section === 'work' && p.visibility === 'everyone');
-    $('work-feed').replaceChildren(...items.map(feedCard));
+    $('work-feed').replaceChildren(...items.map(p => feedCard(p)));
     $('work-empty').hidden = items.length > 0;
   }
 
-  function renderFriends() {
+  // Every post, newest first. Connected accounts join this list later.
+  const OTHER_SOCIALS = ['Instagram', 'LinkedIn', 'X'];
+  function renderAll() {
     const m = me();
-    const gate = $('friends-gate');
-    if (!m || !m.isClose) {
-      gate.hidden = false; $('friends-feed').replaceChildren(); $('friends-empty').hidden = true;
-      gate.replaceChildren(...(!m
-        ? [el('p', { text: `This page is just for ${C.ownerName}’s close friends.` }), el('p', { class: 'muted small', text: `Log in, then ask ${C.ownerName} to add you.` }),
-           el('button', { class: 'btn-primary', type: 'button', text: 'Log in', onclick: () => openAuth('signup') })]
-        : [el('p', { text: `You’re in, ${m.name}.` }), el('p', { class: 'muted small', text: `${C.ownerName} hasn’t added you to close friends yet. Your name is on the list — give ${C.ownerName} a nudge.` })]));
-      return;
-    }
-    gate.hidden = true;
-    const items = state.posts.filter(p => p.visibility === 'close');
+    $('socials-card').hidden = !(m && m.isOwner);
+    $('socials-list').replaceChildren(...OTHER_SOCIALS.map(name =>
+      el('li', null, el('strong', { text: name }), el('span', { text: 'Not connected' }))));
+    const items = state.posts.filter(p => p.visibility === 'everyone');
     const out = []; let last = '';
     for (const p of items) {
       const d = dayLabel(p.created_at);
       if (d !== last) { out.push(el('p', { class: 'day-label', text: d })); last = d; }
-      out.push(feedCard(p));
+      out.push(feedCard(p, 'My social'));
     }
-    $('friends-feed').replaceChildren(...out);
-    $('friends-empty').hidden = items.length > 0;
+    $('all-feed').replaceChildren(...out);
+    $('all-empty').hidden = items.length > 0;
   }
 
   async function renderYou() {
     const m = me();
     $('you-account').replaceChildren(el('div', { class: 'card account-card' }, ...(m
       ? [el('span', { class: 'initial', text: m.name.slice(0, 1).toUpperCase() }),
-         el('div', null, el('strong', { text: m.name }), el('span', { text: (m.isOwner ? 'Owner' : m.isClose ? 'Close friend' : 'Friend') + (m.site ? ' · via ' + new URL(m.site).hostname : '') })),
+         el('div', null, el('strong', { text: m.name }), el('span', { text: (m.isOwner ? 'Owner' : 'Friend') + (m.site ? ' · via ' + new URL(m.site).hostname : '') })),
          el('button', { type: 'button', text: 'Log out', onclick: async () => { await db.signOut(); toast('Logged out'); refresh(); renderYou(); } })]
       : [el('span', { class: 'initial', text: '?' }),
          el('div', null, el('strong', { text: 'Not logged in' }), el('span', { text: 'Log in to comment.' })),
@@ -756,15 +743,9 @@
     if (!card.hidden) {
       try {
         const list = await db.members();
-        $('members').replaceChildren(...(list.length ? list.map(u => {
-          const box = el('input', { type: 'checkbox', 'aria-label': `Close friend: ${u.name}` });
-          box.checked = u.isClose;
-          box.addEventListener('change', async () => {
-            try { await db.setCloseFriend(u.id, box.checked); toast(box.checked ? `${u.name} can see close friends` : `${u.name} removed from close friends`); }
-            catch (err) { box.checked = !box.checked; toast(err.message); }
-          });
-          return el('li', null, el('span', null, u.name, u.site ? el('small', { text: 'via ' + new URL(u.site).hostname }) : u.email ? el('small', { text: u.email }) : null), box);
-        }) : [el('li', null, el('span', { class: 'muted', text: 'Nobody has signed up yet.' }))]));
+        $('members').replaceChildren(...(list.length ? list.map(u =>
+          el('li', null, el('span', null, u.name, u.site ? el('small', { text: 'via ' + new URL(u.site).hostname }) : u.email ? el('small', { text: u.email }) : null)))
+          : [el('li', null, el('span', { class: 'muted', text: 'Nobody has signed up yet.' }))]));
       } catch (err) { toast(err.message); }
     }
   }
@@ -919,7 +900,7 @@
     const p = state.posts.find(x => x.id === id); if (!p) return;
     state.openPost = id;
     const m = me();
-    $('post-section-label').textContent = sectionLabel(p.section) + (p.visibility === 'close' ? ' · close friends' : '');
+    $('post-section-label').textContent = sectionLabel(p.section);
     $('post-media').replaceChildren(p.imageUrl ? el('img', { src: p.imageUrl, alt: '' }) : el('div', { class: 'text-media', text: p.caption }));
     $('post-caption').textContent = p.imageUrl ? p.caption : '';
     $('post-caption').hidden = !p.imageUrl || !p.caption;
@@ -948,7 +929,7 @@
           : el('span'))) : [el('li', null, el('span', { class: 'none', text: 'No comments yet.' }))]));
     } catch (err) { $('comments').replaceChildren(el('li', null, el('span', { class: 'none', text: err.message }))); }
   }
-  function bumpCount(id, n) { const p = state.posts.find(x => x.id === id); if (p) { p.commentCount += n; renderWork(); renderFriends(); } }
+  function bumpCount(id, n) { const p = state.posts.find(x => x.id === id); if (p) { p.commentCount += n; renderAll(); renderWork(); } }
 
   $('comment-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -966,7 +947,7 @@
     p.liked = !p.liked; p.likeCount += p.liked ? 1 : -1;
     $('post-likes').textContent = p.likeCount; $('post-like').classList.toggle('on', p.liked);
     $('post-like').classList.remove('pop'); void $('post-like').offsetWidth; if (p.liked) $('post-like').classList.add('pop');
-    try { await db.toggleLike(p.id, p.liked); renderWork(); renderFriends(); }
+    try { await db.toggleLike(p.id, p.liked); renderAll(); renderWork(); }
     catch (err) { p.liked = !p.liked; p.likeCount += p.liked ? 1 : -1; $('post-likes').textContent = p.likeCount; $('post-like').classList.toggle('on', p.liked); toast(err.message); }
   });
 
@@ -1005,7 +986,7 @@
   });
 
   // compose (owner only — the database enforces this too)
-  let composeBlob = null, composeVis = 'everyone';
+  let composeBlob = null;
   $('compose-open').addEventListener('click', () => {
     composeBlob = null; $('compose-preview').hidden = true; $('compose-drop-text').hidden = false;
     $('compose-caption').value = ''; $('compose-status').textContent = '';
@@ -1020,11 +1001,6 @@
     const b = e.target.closest('button'); if (!b) return;
     $('compose-section').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
   });
-  $('compose-vis').addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if (!b) return;
-    composeVis = b.dataset.vis;
-    $('compose-vis').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-  });
   $('compose-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const caption = $('compose-caption').value.trim();
@@ -1033,7 +1009,7 @@
     if (!caption && !composeBlob) { status.className = 'form-status err'; status.textContent = 'Add a photo or write something.'; return; }
     status.textContent = 'Posting…'; $('compose-submit').disabled = true;
     try {
-      await db.createPost({ section, visibility: composeVis, caption, blob: composeBlob });
+      await db.createPost({ section, visibility: 'everyone', caption, blob: composeBlob });
       closeSheet(); toast('Posted'); await refresh();
     } catch (err) { status.className = 'form-status err'; status.textContent = err.message; }
     finally { $('compose-submit').disabled = false; }

@@ -1,6 +1,6 @@
 ---
 name: make-my-own-social
-description: Set the user up with their own small social site — a phone-app-style website friends add to their home screen, with photo sections, a work page, close friends, comments, and a People tab that links to friends' own socials. Use when the user says "make me my own social", "I want my own Instagram/LinkedIn", or shares this file.
+description: Set the user up with their own small social site — a phone-app-style website friends add to their home screen, with one timeline of everything you post, photo sections, a work page, comments, and a People tab that links to friends' own socials. Use when the user says "make me my own social", "I want my own Instagram/LinkedIn", or shares this file.
 ---
 
 # Make my own social
@@ -66,8 +66,8 @@ Mention that free Supabase projects pause after about a week with no visits.
 ## 4. Hand-off (a few lines)
 
 - Their link, and how to put it on their phone's home screen.
-- Posting: log in → **+** → photo, caption, section, everyone / close friends.
-- Close friends: the **you** tab lists everyone who signs up, each with a switch.
+- Posting: log in → **+** → photo, caption, section.
+- Members: the **you** tab lists everyone who signs up.
 - People tab: add friends' socials by address. On anyone's social they can now
   tap **Log in → Have your own social?** and type their address — no new
   account needed.
