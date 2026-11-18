@@ -86,12 +86,31 @@
       <main id="main">
         <!-- all socials: one timeline -->
         <section class="tab" id="tab-all">
+          <div class="all-main">
           <div class="all-head">
             <h2>All socials</h2>
             <p class="muted">Everything <span data-c="name"></span> posts, in one place.</p>
           </div>
           <div id="all-feed"></div>
           <p class="empty" id="all-empty" hidden>Nothing here yet.</p>
+          </div>
+          <aside class="desk-rail" aria-label="About">
+            <div class="rail-card">
+              <div class="rail-cover"><img id="rail-cover" alt=""></div>
+              <img class="rail-avatar" data-c-src="ownerPhoto" alt="">
+              <h3 data-c="name"></h3>
+              <p class="muted small" id="rail-bio"></p>
+              <div class="rail-stats">
+                <div><strong id="rail-posts">0</strong><span>posts</span></div>
+                <div><strong id="rail-members">0</strong><span>friends</span></div>
+              </div>
+              <button class="btn-primary" id="rail-login" type="button" hidden>Log in to comment</button>
+            </div>
+            <button class="rail-make" id="rail-make" type="button">
+              <strong>Want one like this?</strong>
+              <span>Make your own social with Claude →</span>
+            </button>
+          </aside>
         </section>
 
         <!-- my social: the photo grid -->
@@ -115,6 +134,7 @@
 
         <!-- work -->
         <section class="tab" id="tab-work" hidden>
+          <div class="work-side">
           <div class="work-card">
             <img class="avatar-md" id="work-avatar" alt="">
             <h2 id="work-name"></h2>
@@ -126,6 +146,8 @@
             <h3>About</h3>
             <p id="work-about"></p>
           </div>
+          </div>
+          <div class="work-main">
           <div class="card">
             <h3>Experience</h3>
             <ul class="timeline" id="work-exp"></ul>
@@ -133,6 +155,7 @@
           <h3 class="list-title">Updates</h3>
           <div id="work-feed"></div>
           <p class="empty" id="work-empty" hidden>No work updates yet.</p>
+          </div>
         </section>
 
         <!-- people -->
@@ -155,6 +178,8 @@
 
         <!-- you -->
         <section class="tab" id="tab-you" hidden>
+          <div class="you-cols">
+          <div class="you-col">
           <div id="you-account"></div>
           <div class="card" id="socials-card" hidden>
             <h3>Your accounts</h3>
@@ -162,19 +187,31 @@
             <ul class="socials-list" id="socials-list"></ul>
             <p class="muted small" id="socials-hint" hidden></p>
             <form class="add-row" id="composio-form" hidden>
-              <input id="composio-key" type="password" placeholder="Paste your Composio key" autocomplete="off" aria-label="Composio API key" required>
+              <input id="composio-key" type="password" placeholder="Paste your ak_ key" autocomplete="off" aria-label="Composio API key" required>
               <button type="submit" id="composio-save">Save</button>
             </form>
             <p class="form-status" id="composio-status" role="status"></p>
             <p class="muted small key-saved" id="composio-saved" hidden>Composio key saved. <button type="button" class="text-btn" id="composio-remove">Remove</button></p>
           </div>
-          <h3 class="list-title">How this app looks on your phone</h3>
+          <div class="card" id="members-card" hidden>
+            <h3>Members</h3>
+            <p class="muted small">Everyone who has made an account here.</p>
+            <ul class="members" id="members"></ul>
+          </div>
+          <div class="card" id="demo-card" hidden>
+            <h3>Demo mode</h3>
+            <p class="muted small">Not connected to a database yet, so accounts, posts and comments only live in this browser. See README.md to go live.</p>
+            <label class="switch-row"><span>Preview as <span data-c="name"></span> (can post)</span><input type="checkbox" id="demo-owner"></label>
+          </div>
+          </div>
+          <div class="you-col">
+          <h3 class="list-title">How this app looks for you</h3>
           <p class="muted small look-note">Only you see what you pick here. It doesn’t change anyone else’s app.</p>
           <div class="card">
             <h3>Colours</h3>
             <div class="theme-grid" id="theme-grid-2"></div>
           </div>
-          <div class="card">
+          <div class="card phone-only">
             <h3>Home screen icon</h3>
             <div class="icon-grid" id="icon-grid-2" role="radiogroup" aria-label="Icons"></div>
             <label class="icon-upload">
@@ -188,16 +225,9 @@
             <h3>Banner picture</h3>
             <div class="pic-grid" id="pic-grid-2"></div>
           </div>
-          <div class="card" id="members-card" hidden>
-            <h3>Members</h3>
-            <p class="muted small">Everyone who has made an account here.</p>
-            <ul class="members" id="members"></ul>
           </div>
-          <div class="card" id="demo-card" hidden>
-            <h3>Demo mode</h3>
-            <p class="muted small">Not connected to a database yet, so accounts, posts and comments only live in this browser. See README.md to go live.</p>
-            <label class="switch-row"><span>Preview as <span data-c="name"></span> (can post)</span><input type="checkbox" id="demo-owner"></label>
           </div>
+          <div class="own-block">
           <div class="own-hero" id="make-your-own">
             <p class="eyebrow">make your own</p>
             <h2 class="display-sm">want one like this?</h2>
@@ -222,7 +252,8 @@
               <li>Say “make me my own social”. It will ask for your name, your sections and a photo.</li>
             </ol>
           </div>
-          <button class="btn-ghost" id="replay-intro" type="button">Replay the intro</button>
+          </div>
+          <button class="btn-ghost phone-only" id="replay-intro" type="button">Replay the intro</button>
         </section>
       </main>
 
@@ -252,6 +283,7 @@
       <div class="sheet-bar"><button class="icon-btn" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span id="post-section-label"></span><button class="icon-btn danger" id="post-delete" type="button" aria-label="Delete post" hidden><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg></button></div>
       <div class="sheet-body">
         <div id="post-media"></div>
+        <div class="post-side" id="post-side">
         <div class="post-actions">
           <button class="like-btn" id="post-like" type="button" aria-label="Like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg><span id="post-likes">0</span></button>
           <span class="muted small" id="post-date"></span>
@@ -259,6 +291,7 @@
         <p class="post-caption" id="post-caption"></p>
         <h4 class="comments-title">Comments</h4>
         <ul class="comments" id="comments"></ul>
+        </div>
       </div>
       <form class="comment-form" id="comment-form">
         <input id="comment-input" placeholder="Add a comment…" maxlength="1000" autocomplete="off">

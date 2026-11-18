@@ -12,12 +12,12 @@ const API = 'https://backend.composio.dev/api/v3.1';
 const USER = 'owner';                       // one owner per site
 const PLATFORMS = ['instagram', 'linkedin'];
 
-class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+class HttpError extends Error { constructor(status, msg, upstream) { super(msg); this.status = status; this.upstream = upstream; } }
 
 async function composio(path, opts = {}) {
   const r = await fetch(API + path, { ...opts, headers: { 'x-api-key': KEY, 'Content-Type': 'application/json' } });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new HttpError(502, (j.error && j.error.message) || `Composio said ${r.status}`);
+  if (!r.ok) throw new HttpError(502, (j.error && j.error.message) || `Composio said ${r.status}`, r.status);
   return j;
 }
 
@@ -73,9 +73,15 @@ async function rpc(h, name, args) {
 async function saveKey(h, key) {
   if (key === '') return rpc(h, 'set_composio_key', { p_key: '' });
   if (typeof key !== 'string' || !/^[\w-]{10,200}$/.test(key)) throw new HttpError(400, 'That doesn’t look like a Composio key.');
+  // Composio hands out several kinds of key; only a project key works here.
+  if (/^(ck|uak|oak)_/.test(key)) throw new HttpError(400, `That’s a different kind of Composio key (it starts with ${key.split('_')[0]}_). You need the project key that starts with ak_.`);
   KEY = key;
   try { await composio(`/connected_accounts?user_ids=${USER}`); }
-  catch (_) { throw new HttpError(400, 'Composio didn’t accept that key.'); }
+  catch (err) {
+    throw new HttpError(400, err.upstream === 401 || err.upstream === 403
+      ? 'Composio didn’t accept that key. Copy the project key again. It starts with ak_.'
+      : 'Couldn’t reach Composio just now. Try again in a minute.');
+  }
   return rpc(h, 'set_composio_key', { p_key: key });
 }
 

@@ -388,7 +388,7 @@
   function currentPic() { return store.get('es-pic', C.selfies[2] || C.selfies[0] || C.ownerPhoto); }
   async function applyPic(src) {
     if (!store.set('es-pic', src)) { toast('That picture is too big to save here.'); return; }
-    $('cover-img').src = src; $('enter-cover').src = src;
+    $('cover-img').src = src; $('enter-cover').src = src; $('rail-cover').src = src;
     document.querySelectorAll('.pic-opt[data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === src));
     syncAppUrl();
   }
@@ -651,7 +651,7 @@
     $('mode-chip').hidden = LIVE;
     try {
       state.posts = await db.posts();
-      $('stat-members').textContent = await db.memberCount();
+      $('stat-members').textContent = $('rail-members').textContent = await db.memberCount();
     } catch (err) {
       toast('Could not load posts: ' + err.message);
       state.posts = [];
@@ -670,6 +670,7 @@
     document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', C.handle);
     $('owner-avatar').src = C.ownerPhoto; $('work-avatar').src = C.ownerPhoto;
     $('owner-name').textContent = C.ownerName; $('owner-bio').textContent = C.bio;
+    $('rail-bio').textContent = C.intro || C.bio;
     $('work-name').textContent = C.ownerName;
     $('work-headline').textContent = C.work.headline;
     $('work-location').textContent = C.work.location;
@@ -687,7 +688,7 @@
   function renderHome() {
     const pub = state.posts.filter(p => p.visibility === 'everyone' && GRID_SECTIONS.includes(p.section));
     const shown = state.section === 'all' ? pub : pub.filter(p => p.section === state.section);
-    $('stat-posts').textContent = state.posts.filter(p => p.visibility === 'everyone').length;
+    $('stat-posts').textContent = $('rail-posts').textContent = state.posts.filter(p => p.visibility === 'everyone').length;
     $('grid').replaceChildren(...shown.map(p => p.imageUrl
       ? el('button', { type: 'button', class: 'tile', onclick: () => openPost(p.id), 'aria-label': p.caption || 'Post' },
           el('img', { src: p.imageUrl, alt: '', loading: 'lazy' }),
@@ -713,6 +714,9 @@
     $('work-feed').replaceChildren(...items.map(p => feedCard(p)));
     $('work-empty').hidden = items.length > 0;
   }
+
+  $('rail-login').addEventListener('click', () => openAuth('signup'));
+  $('rail-make').addEventListener('click', () => { switchTab('you'); setTimeout(() => $('make-your-own').scrollIntoView({ behavior: 'smooth' }), 50); });
 
   // ---------- connected accounts ----------
   const SOCIALS = [
@@ -777,15 +781,15 @@
     $('socials-hint').hidden = info.configured;
     $('socials-hint').replaceChildren(...(!LIVE ? ['This works once your site is live.'] : info.keyProblem
       ? ['Composio didn’t accept your saved key. Paste a new one below.']
-      : ['Get a free key at ', el('a', { href: 'https://composio.dev', target: '_blank', rel: 'noopener', text: 'composio.dev' }), ', then paste it here.']));
+      : ['Open ', el('a', { href: 'https://dashboard.composio.dev', target: '_blank', rel: 'noopener', text: 'your Composio dashboard' }), ', go to your project’s Settings, then API Keys, and copy the key that starts with ak_.']));
     const row = (name, note, right) => el('li', null, el('div', null, el('strong', { text: name }), el('small', { text: note })), right);
     $('socials-list').replaceChildren(...SOCIALS.map(a => {
       if (!info.configured) return row(a.name, a.note, el('span', { text: 'Not connected' }));
-      if (info.accounts[a.id]) return row(a.name, 'Connected', el('button', { type: 'button', class: 'link-btn', text: 'Disconnect', onclick: async () => {
+      if (info.accounts[a.id]) return row(a.name, 'Connected', el('button', { type: 'button', class: 'pill-btn', text: 'Disconnect', onclick: async () => {
         if (!confirm(`Disconnect ${a.name}?`)) return;
         try { await socialsApi('disconnect', { platform: a.id }); toast(`${a.name} disconnected`); renderSocials(); loadExternal(); } catch (err) { toast(err.message); }
       } }));
-      return row(a.name, a.note, el('button', { type: 'button', class: 'link-btn', text: 'Connect', onclick: async (e) => {
+      return row(a.name, a.note, el('button', { type: 'button', class: 'pill-btn', text: 'Connect', onclick: async (e) => {
         e.target.disabled = true;
         try { location.href = (await socialsApi('connect', { platform: a.id })).url; } catch (err) { e.target.disabled = false; toast(err.message); }
       } }));
@@ -793,6 +797,7 @@
   }
 
   function renderAll() {
+    $('rail-login').hidden = !!me();
     // A post sent to Instagram from here shows once, not twice.
     const sent = new Set(state.posts.map(p => String((p.shared_to || {}).instagram)));
     const items = [...state.posts.filter(p => p.visibility === 'everyone'), ...state.external.filter(x => !sent.has(String(x.id)))]
@@ -991,7 +996,7 @@
     $('post-delete').hidden = !(m && m.isOwner);
     $('comment-form').hidden = !m; $('comment-signup').hidden = !!m;
     showSheet('post-sheet');
-    $('post-sheet').querySelector('.sheet-body').scrollTop = 0;
+    $('post-sheet').querySelector('.sheet-body').scrollTop = 0; $('post-side').scrollTop = 0;
     loadComments(id);
   }
   async function loadComments(id) {
@@ -1191,7 +1196,9 @@
       catch (err) { toast(err.message); }
     }
     await handleArrivals(arrival);
-    if (store.get('es-onboarded', false)) enterApp(); else startOnboarding();
+    // The add-to-home-screen intro is for phones; computers go straight in.
+    const computer = window.matchMedia('(min-width: 960px) and (hover: hover) and (pointer: fine)').matches;
+    if (computer || store.get('es-onboarded', false)) enterApp(); else startOnboarding();
     if (pendingConnect) openConnect(pendingConnect);
     if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
   }
