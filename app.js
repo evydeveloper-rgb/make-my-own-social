@@ -723,9 +723,24 @@
     $('work-location').textContent = C.work.location;
     $('work-about').textContent = C.work.about;
     $('work-links').replaceChildren(...C.work.links.map(l => el('a', { href: l.url, target: '_blank', rel: 'noopener', text: l.label })));
-    $('work-exp').replaceChildren(...C.work.experience.map(x => el('li', null,
-      el('span', { class: 'org-badge', text: x.org.slice(0, 1) }),
-      el('div', null, el('strong', { text: x.role }), el('span', { text: `${x.org} · ${x.when}` }), x.note ? el('span', { text: x.note }) : null))));
+    const W = C.work;
+    // Long descriptions show three lines with a "more" button, like LinkedIn.
+    const note = (text) => {
+      if (!text) return null;
+      const p = el('p', { class: 'exp-note', text });
+      if (text.length < 180) return p;
+      p.classList.add('clamped');
+      const btn = el('button', { type: 'button', class: 'more-btn', text: 'more', onclick: () => { btn.textContent = p.classList.toggle('clamped') ? 'more' : 'less'; } });
+      return el('div', null, p, btn);
+    };
+    const row = (badge, title, lines, text) => el('li', null,
+      el('span', { class: 'org-badge', text: String(badge || '?').slice(0, 1) }),
+      el('div', null, el('strong', { text: title }), ...lines.filter(Boolean).map(t => el('span', { text: t })), note(text)));
+    const fill = (id, items, make) => { $(id).replaceChildren(...items.map(make)); const card = $(id + '-card'); if (card) card.hidden = !items.length; };
+    fill('work-exp', W.experience || [], x => row(x.org, x.role, [x.org + (x.type ? ' · ' + x.type : ''), [x.when, x.location].filter(Boolean).join(' · ')], x.note));
+    fill('work-edu', W.education || [], x => row(x.school, x.school, [x.degree, x.when]));
+    fill('work-cert', W.certifications || [], x => row(x.issuer || x.name, x.name, [x.issuer, x.when]));
+    fill('work-lang', W.languages || [], x => row(x.name, x.name, [x.level]));
     $('section-chips').replaceChildren(...[{ id: 'all', label: 'All' }, ...SECTIONS.filter(s => GRID_SECTIONS.includes(s.id))]
       .map(s => el('button', { type: 'button', class: 'chip' + (state.section === s.id ? ' on' : ''), 'data-sec': s.id, text: s.label,
         onclick: () => { state.section = s.id; document.querySelectorAll('#section-chips .chip').forEach(c => c.classList.toggle('on', c.dataset.sec === s.id)); renderHome(); } })));

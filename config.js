@@ -30,6 +30,10 @@
     experience: [
       { role: 'Your role', org: 'Where', when: '2026 – now', note: 'One line about it.' },
     ],
+    // Optional extra cards; empty ones stay hidden.
+    education: [],        // { school, degree, when }
+    certifications: [],   // { name, issuer, when }
+    languages: [],        // { name, level }
     links: [],
   },
 });

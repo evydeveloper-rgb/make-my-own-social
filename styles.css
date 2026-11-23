@@ -258,6 +258,9 @@ code { font-size: .85em; background: var(--sunken); padding: 1px 5px; border-rad
 .timeline .org-badge { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
 .timeline strong { display: block; }
 .timeline span { display: block; font-size: .84rem; color: var(--ink-2); }
+.exp-note { margin: 6px 0 0; font-size: .84rem; color: var(--ink-2); white-space: pre-line; }
+.exp-note.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.more-btn { border: 0; background: none; padding: 2px 0 0; color: var(--accent); font-weight: 600; font-size: .82rem; }
 .list-title { margin: 20px 18px 10px; font-size: .95rem; }
 
 .feed-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin: 0 16px 12px; overflow: hidden; }
