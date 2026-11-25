@@ -123,15 +123,16 @@ create policy "owner deletes media" on storage.objects for delete
 
 
 
--- people: the owner's list of friends' social sites (public to read)
+-- people: each signed-in person's list of friends' social sites.
+-- The owner's list is public (it's shared in /social.json); everyone else's is private.
 create table public.people (
-  url text primary key check (url ~ '^https://[a-z0-9.-]+$'),
-  added_at timestamptz not null default now()
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  url text not null check (url ~ '^https://[a-z0-9.-]+$'),
+  added_at timestamptz not null default now(),
+  unique (user_id, url)
 );
 alter table public.people enable row level security;
-create policy "people readable" on public.people for select using (true);
-create policy "owner adds people" on public.people for insert with check (private.is_owner());
-create policy "owner removes people" on public.people for delete using (private.is_owner());
 
 -- posts can exist before the owner signs up (seeded photos)
 alter table public.posts alter column author_id drop not null;
@@ -263,6 +264,10 @@ alter table public.site_settings enable row level security;
 create policy "anyone reads site settings" on public.site_settings for select using (true);
 create policy "owner adds site settings" on public.site_settings for insert to authenticated with check (private.is_owner());
 create policy "owner edits site settings" on public.site_settings for update to authenticated using (private.is_owner()) with check (private.is_owner());
+
+create policy "your list and the owner's" on public.people for select using (user_id = auth.uid() or user_id in (select id from public.profiles where is_owner));
+create policy "add to your own list" on public.people for insert to authenticated with check (user_id = auth.uid());
+create policy "remove from your own list" on public.people for delete to authenticated using (user_id = auth.uid());
 
 -- ---------- last step: after you sign up on your site, make yourself the owner ----------
 -- update public.profiles set is_owner = true

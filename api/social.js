@@ -22,6 +22,7 @@ module.exports = async (req, res) => {
     bio: C.bio,
     sections: Object.values(SECTION_LABELS),
     latest: [],
+    following: [],
   };
 
   try {
@@ -39,6 +40,8 @@ module.exports = async (req, res) => {
       }
       card.latest.push({ section: SECTION_LABELS[p.section] || p.section, caption: (p.caption || '').slice(0, 280), photo, date: p.created_at });
     }
+    const f = await fetch(`${SB_URL}/rest/v1/people?select=url&order=added_at`, { headers: h });
+    if (f.ok) card.following = (await f.json()).map(x => x.url);
   } catch (_) { /* still hand out the card without posts */ }
 
   res.end(JSON.stringify(card, null, 2));

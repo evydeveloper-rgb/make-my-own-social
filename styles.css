@@ -220,6 +220,36 @@ code { font-size: .85em; background: var(--sunken); padding: 1px 5px; border-rad
 .bio h2 { margin: 0; font-size: 1.05rem; }
 .bio p { margin: 2px 0 0; color: var(--ink-2); }
 
+/* calendar heatmap */
+.heat { margin: 14px 16px 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.heat-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.heat-head strong { font-size: 1rem; min-width: 44px; text-align: center; }
+.heat-arrow { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 1.1rem; line-height: 1; }
+.heat-arrow:disabled { opacity: .35; }
+.heat-count { margin-left: auto; font-size: .82rem; color: var(--ink-2); }
+.heat-months { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 10px; }
+.hm-name { margin: 0 0 4px; font-size: .72rem; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
+.hm-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1.5px; }
+.hc { aspect-ratio: 1; border-radius: 3px; border: 0; padding: 0; background: var(--sunken); }
+.hc.pad { background: none; }
+.hc.later { opacity: .45; }
+.hc.l1 { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); }
+.hc.l2 { background: color-mix(in srgb, var(--accent) 68%, var(--surface)); }
+.hc.l3 { background: var(--accent); }
+button.hc { cursor: pointer; }
+.hc.today { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.hc.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+.heat-legend { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 10px; font-size: .7rem; color: var(--ink-3); }
+.heat-legend i { width: 10px; height: 10px; border-radius: 2px; }
+.heat-legend i.l0 { background: var(--sunken); }
+.heat-legend i.l1 { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); }
+.heat-legend i.l2 { background: color-mix(in srgb, var(--accent) 68%, var(--surface)); }
+.heat-legend i.l3 { background: var(--accent); }
+.heat-legend span { margin: 0 3px; }
+.day-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; font-size: .9rem; }
+a.tile { display: block; color: inherit; text-decoration: none; }
+.people-signin { margin: 8px 16px 0; padding: 20px; text-align: center; background: var(--surface); border: 1px dashed var(--ink-3); border-radius: var(--radius); }
+.people-signin p { margin: 0; color: var(--ink-2); }
 .chips { display: flex; gap: 8px; overflow-x: auto; padding: 14px 16px; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
 .chip {
@@ -528,6 +558,10 @@ a.btn-ghost { text-align: center; text-decoration: none; }
   .bio { padding: 12px 28px 4px; }
   .bio h2 { font: 600 1.5rem/1.2 var(--display); }
   .chips { padding: 20px 0 18px; }
+  .heat { margin: 20px 0 0; padding: 18px 20px; }
+  .heat-months { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px 18px; }
+  .day-bar { padding: 18px 0 14px; }
+  .people-signin { margin: 8px 0 0; max-width: 560px; }
   .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .tile { border-radius: 10px; transition: filter .15s; }
   .tile:hover { filter: brightness(.9); }

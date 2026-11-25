@@ -153,6 +153,20 @@
             <h2 id="owner-name"></h2>
             <p id="owner-bio"></p>
           </div>
+          <section class="heat" id="heat" aria-label="Posting calendar">
+            <div class="heat-head">
+              <button type="button" class="heat-arrow" id="heat-prev" aria-label="Earlier year">‹</button>
+              <strong id="heat-year"></strong>
+              <button type="button" class="heat-arrow" id="heat-next" aria-label="Later year">›</button>
+              <span class="heat-count" id="heat-count"></span>
+            </div>
+            <div class="heat-months" id="heat-months"></div>
+            <div class="heat-legend"><span>less</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><span>more</span></div>
+          </section>
+          <div class="day-bar" id="day-bar" hidden>
+            <strong id="day-label"></strong>
+            <button type="button" class="text-btn" id="day-clear">Show all</button>
+          </div>
           <nav class="chips" id="section-chips" aria-label="Sections"></nav>
           <div class="grid" id="grid"></div>
           <p class="empty" id="grid-empty" hidden>Nothing here yet.</p>
@@ -201,6 +215,11 @@
           <div class="own-hero">
             <h2 class="display-sm">people</h2>
             <p class="muted" id="people-sub"></p>
+          </div>
+          <div class="people-signin" id="people-signin" hidden>
+            <p>Log in to follow people and see their posts here. If you have your own social, the people you follow there show up too.</p>
+            <button type="button" class="btn-primary" id="people-login">Log in</button>
+            <button type="button" class="btn-ghost" id="people-make">Make your own social</button>
           </div>
           <nav class="chips people-views" id="people-views" aria-label="People views">
             <button type="button" class="chip on" data-view="feed" aria-pressed="true">Feed</button>

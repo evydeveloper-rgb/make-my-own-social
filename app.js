@@ -196,9 +196,16 @@
       d.linkedin.push({ id: uid(), urn, posted_at }); this.save(d);
     },
     async removeLinkedin(id) { const d = this.load(); d.linkedin = (d.linkedin || []).filter(x => x.id !== id); this.save(d); },
-    async people() { return this.load().people || []; },
-    async addPerson(url) { const d = this.load(); d.people = [...new Set([...(d.people || []), url])]; this.save(d); },
-    async removePerson(url) { const d = this.load(); d.people = (d.people || []).filter(u => u !== url); this.save(d); },
+    // Each signed-in person keeps their own list (key: their id).
+    async people() { const me = this.session(); return me ? ((this.load().follows || {})[me.id] || []) : []; },
+    async addPerson(url) {
+      const d = this.load(), me = this.session(); d.follows = d.follows || {};
+      d.follows[me.id] = [...new Set([...(d.follows[me.id] || []), url])]; this.save(d);
+    },
+    async removePerson(url) {
+      const d = this.load(), me = this.session(); d.follows = d.follows || {};
+      d.follows[me.id] = (d.follows[me.id] || []).filter(u => u !== url); this.save(d);
+    },
     async siteLogin() { throw new Error('Logging in with your own social works once this site is live.'); },
     async connectCode() { throw new Error('Not available in demo mode.'); },
   };
@@ -336,8 +343,10 @@
       const { error } = await this.sb.from('linkedin_posts').delete().eq('id', id);
       if (error) throw error;
     },
+    // The signed-in person's own following list.
     async people() {
-      const { data, error } = await this.sb.from('people').select('url').order('added_at');
+      if (!this.me) return [];
+      const { data, error } = await this.sb.from('people').select('url').eq('user_id', this.me.id).order('added_at');
       if (error) throw error;
       return data.map(r => r.url);
     },
@@ -346,7 +355,7 @@
       if (error && !/duplicate/i.test(error.message)) throw error;
     },
     async removePerson(url) {
-      const { error } = await this.sb.from('people').delete().eq('url', url);
+      const { error } = await this.sb.from('people').delete().eq('url', url).eq('user_id', this.me.id);
       if (error) throw error;
     },
     // Visitor arrives back from their own site with a one-time code.
@@ -374,7 +383,7 @@
   // =====================================================================
   //  STATE
   // =====================================================================
-  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], linkedin: [], peopleView: 'feed', openPost: null, authMode: 'signup', after: null };
+  const state = { tab: 'all', source: 'all', section: 'all', posts: [], external: [], linkedin: [], peopleView: 'feed', heatYear: null, day: null, openPost: null, authMode: 'signup', after: null };
   const me = () => db.session();
 
   // ---------- carrying choices onto the home screen ----------
@@ -747,7 +756,68 @@
     $('compose-section').replaceChildren(...SECTIONS.map((s, i) => el('button', { type: 'button', 'data-sec': s.id, class: i === 0 ? 'on' : '', text: s.label })));
   }
 
+  // ---------- calendar heatmap: every day you posted, anywhere ----------
+  const dayKey = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  function everything() {
+    return [
+      ...state.posts.filter(p => p.visibility === 'everyone'),
+      ...state.external,
+      ...state.linkedin.map(x => ({ ...x, source: 'linkedin', created_at: x.posted_at })),
+    ];
+  }
+  function renderHeat() {
+    const counts = {};
+    for (const p of everything()) { const k = dayKey(p.created_at); counts[k] = (counts[k] || 0) + 1; }
+    const now = new Date(), years = Object.keys(counts).map(k => +k.slice(0, 4));
+    const first = Math.min(now.getFullYear(), ...years), last = now.getFullYear();
+    if (!state.heatYear) state.heatYear = last;
+    const y = state.heatYear;
+    $('heat-year').textContent = y;
+    $('heat-prev').disabled = y <= first; $('heat-next').disabled = y >= last;
+    const inYear = Object.entries(counts).filter(([k]) => +k.slice(0, 4) === y).reduce((n, [, c]) => n + c, 0);
+    $('heat-count').textContent = `${inYear} post${inYear === 1 ? '' : 's'}`;
+    const today = dayKey(now.toISOString());
+    $('heat-months').replaceChildren(...Array.from({ length: 12 }, (_, mo) => {
+      const start = new Date(y, mo, 1), days = new Date(y, mo + 1, 0).getDate();
+      const cells = Array.from({ length: start.getDay() }, () => el('span', { class: 'hc pad' }));
+      for (let d = 1; d <= days; d++) {
+        const k = `${y}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, n = counts[k] || 0;
+        const cls = 'hc l' + (n >= 3 ? 3 : n) + (k === today ? ' today' : '') + (k === state.day ? ' sel' : '') + (k > today ? ' later' : '');
+        const label = new Date(y, mo, d).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        cells.push(n
+          ? el('button', { type: 'button', class: cls, 'aria-label': `${label}: ${n} post${n === 1 ? '' : 's'}`, onclick: () => { state.day = state.day === k ? null : k; renderHome(); } })
+          : el('span', { class: cls }));
+      }
+      return el('div', { class: 'hm' }, el('p', { class: 'hm-name', text: start.toLocaleDateString(undefined, { month: 'short' }) }), el('div', { class: 'hm-days' }, ...cells));
+    }));
+  }
+  $('heat-prev').addEventListener('click', () => { state.heatYear--; state.day = null; renderHome(); });
+  $('heat-next').addEventListener('click', () => { state.heatYear++; state.day = null; renderHome(); });
+  $('day-clear').addEventListener('click', () => { state.day = null; renderHome(); });
+  function dayTile(p) {
+    const tag = el('span', { class: 'tag', text: p.source ? socialName(p.source) : sectionLabel(p.section) });
+    if (!p.source) return p.imageUrl
+      ? el('button', { type: 'button', class: 'tile', onclick: () => openPost(p.id), 'aria-label': p.caption || 'Post' }, el('img', { src: p.imageUrl, alt: '', loading: 'lazy' }), tag)
+      : el('button', { type: 'button', class: 'tile text', onclick: () => openPost(p.id) }, el('span', { text: p.caption }), tag);
+    const href = p.url || `https://www.linkedin.com/feed/update/${p.urn}/`;
+    return p.imageUrl
+      ? el('a', { class: 'tile', href, target: '_blank', rel: 'noopener', 'aria-label': p.caption || 'Post' }, el('img', { src: p.imageUrl, alt: '', loading: 'lazy' }), tag)
+      : el('a', { class: 'tile text', href, target: '_blank', rel: 'noopener' }, el('span', { text: p.caption || 'LinkedIn post' }), tag);
+  }
+
   function renderHome() {
+    renderHeat();
+    $('day-bar').hidden = !state.day;
+    $('section-chips').hidden = !!state.day;
+    if (state.day) {
+      const items = everything().filter(p => dayKey(p.created_at) === state.day).sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const [yy, mm, dd] = state.day.split('-').map(Number);
+      $('day-label').textContent = `${new Date(yy, mm - 1, dd).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · ${items.length} post${items.length === 1 ? '' : 's'}`;
+      $('grid').replaceChildren(...items.map(dayTile));
+      $('grid-empty').hidden = items.length > 0;
+      $('stat-posts').textContent = $('rail-posts').textContent = state.posts.filter(p => p.visibility === 'everyone').length;
+      return;
+    }
     const pub = state.posts.filter(p => p.visibility === 'everyone' && GRID_SECTIONS.includes(p.section));
     const shown = state.section === 'all' ? pub : pub.filter(p => p.section === state.section);
     $('stat-posts').textContent = $('rail-posts').textContent = state.posts.filter(p => p.visibility === 'everyone').length;
@@ -858,7 +928,7 @@
     try {
       await db.addLinkedin(urn, linkedinDate(urn));
       state.linkedin = await db.linkedinPosts();
-      $('linkedin-url').value = ''; status.textContent = ''; renderAll(); toast('Added');
+      $('linkedin-url').value = ''; status.textContent = ''; renderAll(); renderHome(); toast('Added');
     } catch (err) {
       status.className = 'form-status err';
       status.textContent = err.message === 'duplicate' ? 'That post is already on your site.' : err.message;
@@ -869,7 +939,7 @@
     try {
       const r = await fetch('/api/socials?action=feed');
       state.external = r.ok ? (await r.json()).items || [] : [];
-      renderAll();
+      renderAll(); renderHome();
     } catch (_) { /* the timeline still shows this site's own posts */ }
   }
   async function socialsApi(action, body) {
@@ -1037,7 +1107,7 @@
     $('people-feed').replaceChildren();
     empty.hidden = false;
     if (!urls.length) {
-      empty.textContent = m && m.isOwner ? 'Add someone under Following to see their posts here.' : 'Nothing here yet.';
+      empty.textContent = 'Add someone under Following to see their posts here.';
       return;
     }
     empty.textContent = 'Loading…';
@@ -1067,7 +1137,9 @@
   function showPeopleView() {
     const feed = state.peopleView === 'feed';
     $('people-feed-view').hidden = !feed; $('people-following-view').hidden = feed;
-    $('people-sub').textContent = feed ? `Posts from everyone ${C.ownerName} follows.` : `The socials ${C.ownerName} follows. Tap one to open it.`;
+    const m = me();
+    $('people-sub').textContent = !m ? 'Follow friends’ socials and see their posts here.'
+      : feed ? 'Posts from everyone you follow.' : 'The socials you follow. Tap one to open it.';
     document.querySelectorAll('#people-views .chip').forEach(c => {
       const on = c.dataset.view === state.peopleView;
       c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on));
@@ -1077,23 +1149,38 @@
     const b = e.target.closest('button'); if (!b) return;
     state.peopleView = b.dataset.view; showPeopleView(); $('main').scrollTop = 0;
   });
+  // Everyone sees the people *they* follow: their list on this site, plus the
+  // list their own social shares if they logged in with it.
   async function renderPeople() {
     const m = me();
     showPeopleView();
     cardMemo.clear();
-    $('add-person').hidden = !(m && m.isOwner);
-    let urls = [];
-    try { urls = await db.people(); } catch (err) { toast(err.message); }
-    $('people-list').replaceChildren(...urls.map(u => personCard(u, !!(m && m.isOwner))));
+    $('people-signin').hidden = !!m;
+    $('people-views').hidden = !m;
+    $('people-feed-view').hidden = !m || state.peopleView !== 'feed';
+    $('people-following-view').hidden = !m || state.peopleView !== 'following';
+    $('add-person').hidden = !m;
+    if (!m) return;
+    let own = [], fromSite = [];
+    try { own = await db.people(); } catch (err) { toast(err.message); }
+    if (m.site) {
+      try { fromSite = (await cardFor(m.site)).following || []; } catch (_) {}
+      fromSite = fromSite.filter(u => typeof u === 'string' && /^https:\/\/[a-z0-9.-]+$/.test(u) && u !== location.origin && !own.includes(u));
+    }
+    const urls = [...own, ...fromSite];
+    $('people-list').replaceChildren(...own.map(u => personCard(u, true)), ...fromSite.map(u => personCard(u, false)));
     $('people-empty').hidden = urls.length > 0;
     renderPeopleFeed(urls);
   }
+  $('people-login').addEventListener('click', () => openAuth('signup'));
+  $('people-make').addEventListener('click', () => { switchTab('you'); setTimeout(() => $('make-your-own').scrollIntoView({ behavior: 'smooth' }), 50); });
   $('add-person').addEventListener('submit', async (e) => {
     e.preventDefault();
     const status = $('add-person-status'); status.className = 'form-status'; status.textContent = 'Checking…';
     try {
       const origin = siteOrigin($('add-person-url').value);
       if (origin === location.origin) throw new Error('That’s this site.');
+      if (me() && me().site === origin) throw new Error('That’s your own social.');
       try { await fetchCard(origin); } catch (_) { throw new Error('No social found there (it has no /social.json).'); }
       await db.addPerson(origin);
       $('add-person-url').value = ''; status.textContent = '';
